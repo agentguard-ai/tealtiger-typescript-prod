@@ -1,12 +1,22 @@
-# TealTiger SDK
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/logo/tealtiger-logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset=".github/logo/tealtiger-logo-light.png">
+    <img alt="TealTiger Logo" src=".github/logo/tealtiger-logo-light.png" width="200">
+  </picture>
+  
+  # TealTiger SDK
+  
+  > The first open-source AI agent security SDK with **client-side guardrails** 🛡️
+  
+  [![npm version](https://badge.fury.io/js/tealtiger.svg)](https://www.npmjs.com/package/tealtiger)
+  [![npm downloads](https://img.shields.io/npm/dm/tealtiger.svg)](https://www.npmjs.com/package/tealtiger)
+  [![Tests](https://github.com/agentguard-ai/tealtiger-sdk/actions/workflows/test.yml/badge.svg)](https://github.com/agentguard-ai/tealtiger-sdk/actions/workflows/test.yml)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
+</div>
 
-> The first open-source AI agent security SDK with **client-side guardrails** 🛡️
-
-[![npm version](https://badge.fury.io/js/tealtiger.svg)](https://www.npmjs.com/package/tealtiger)
-[![npm downloads](https://img.shields.io/npm/dm/tealtiger.svg)](https://www.npmjs.com/package/tealtiger)
-[![Tests](https://github.com/agentguard-ai/tealtiger-sdk/actions/workflows/test.yml/badge.svg)](https://github.com/agentguard-ai/tealtiger-sdk/actions/workflows/test.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
+> 📖 **[Read the introduction blog post](https://dev.to/nagasatish_chilakamarti_2/introducing-tealtiger-ai-security-cost-control-made-simple-4lma)** to learn more about TealTiger!
 
 ## ✨ What's New in v1.0.0
 
