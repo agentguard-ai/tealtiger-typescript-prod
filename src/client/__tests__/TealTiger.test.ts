@@ -16,7 +16,7 @@ jest.mock('../../config/Configuration');
 const MockedConfiguration = Configuration as jest.MockedClass<typeof Configuration>;
 
 describe('TealTiger', () => {
-  let TealTiger: TealTiger;
+  let tealTigerInstance: TealTiger;
   let mockSSAClient: jest.Mocked<SSAClient>;
   let mockConfig: jest.Mocked<Configuration>;
 
@@ -56,7 +56,7 @@ describe('TealTiger', () => {
     MockedSSAClient.mockImplementation(() => mockSSAClient);
 
     // Create TealTiger instance
-    TealTiger = new TealTiger({
+    tealTigerInstance = new TealTiger({
       apiKey: 'test-api-key',
       ssaUrl: 'https://test-ssa.example.com',
       agentId: 'test-agent'
@@ -65,7 +65,7 @@ describe('TealTiger', () => {
 
   describe('Constructor', () => {
     it('should create instance with valid configuration', () => {
-      expect(TealTiger).toBeInstanceOf(TealTiger);
+      expect(tealTigerInstance).toBeInstanceOf(TealTiger);
       expect(MockedConfiguration).toHaveBeenCalledWith({
         apiKey: 'test-api-key',
         ssaUrl: 'https://test-ssa.example.com',
@@ -114,7 +114,7 @@ describe('TealTiger', () => {
 
       mockToolExecutor.mockResolvedValue({ result: 'success' });
 
-      const result = await TealTiger.executeTool(
+      const result = await tealTigerInstance.executeTool(
         'test-tool',
         { param1: 'value1' },
         undefined, // context
@@ -153,7 +153,7 @@ describe('TealTiger', () => {
         decision: mockDecision
       });
 
-      const result = await TealTiger.executeTool(
+      const result = await tealTigerInstance.executeTool(
         'dangerous-tool',
         { param1: 'value1' },
         undefined, // context
@@ -196,7 +196,7 @@ describe('TealTiger', () => {
 
       mockToolExecutor.mockResolvedValue({ content: 'file content' });
 
-      const result = await TealTiger.executeTool(
+      const result = await tealTigerInstance.executeTool(
         'file-write',
         { path: '/test.txt', content: 'data' },
         undefined, // context
@@ -213,20 +213,20 @@ describe('TealTiger', () => {
     });
 
     it('should validate tool name', async () => {
-      const result = await TealTiger.executeTool('', {}, undefined, mockToolExecutor);
+      const result = await tealTigerInstance.executeTool('', {}, undefined, mockToolExecutor);
       
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('INVALID_REQUEST');
       expect(result.error?.message).toContain('Tool name is required');
 
-      const result2 = await TealTiger.executeTool('invalid tool name!', {}, undefined, mockToolExecutor);
+      const result2 = await tealTigerInstance.executeTool('invalid tool name!', {}, undefined, mockToolExecutor);
       
       expect(result2.success).toBe(false);
       expect(result2.error?.code).toBe('INVALID_REQUEST');
     });
 
     it('should validate tool parameters', async () => {
-      const result = await TealTiger.executeTool('test-tool', null as any, undefined, mockToolExecutor);
+      const result = await tealTigerInstance.executeTool('test-tool', null as any, undefined, mockToolExecutor);
       
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('INVALID_REQUEST');
@@ -243,7 +243,7 @@ describe('TealTiger', () => {
         }
       });
 
-      const result = await TealTiger.executeTool(
+      const result = await tealTigerInstance.executeTool(
         'test-tool',
         { param1: 'value1' },
         undefined, // context
@@ -279,7 +279,7 @@ describe('TealTiger', () => {
         decision: mockDecision
       });
 
-      const result = await TealTiger.evaluateTool(
+      const result = await tealTigerInstance.evaluateTool(
         'test-tool',
         { param1: 'value1' }
       );
@@ -305,7 +305,7 @@ describe('TealTiger', () => {
       });
 
       await expect(
-        TealTiger.evaluateTool('test-tool', { param1: 'value1' })
+        tealTigerInstance.evaluateTool('test-tool', { param1: 'value1' })
       ).rejects.toThrow('Security evaluation failed');
     });
   });
@@ -343,7 +343,7 @@ describe('TealTiger', () => {
 
       mockSSAClient.getAuditTrail.mockResolvedValue(mockAuditTrail);
 
-      const result = await TealTiger.getAuditTrail();
+      const result = await tealTigerInstance.getAuditTrail();
 
       expect(mockSSAClient.getAuditTrail).toHaveBeenCalledWith('test-agent', {});
       expect(result).toEqual(mockAuditTrail);
@@ -365,7 +365,7 @@ describe('TealTiger', () => {
         }
       });
 
-      await TealTiger.getAuditTrail(filters);
+      await tealTigerInstance.getAuditTrail(filters);
 
       expect(mockSSAClient.getAuditTrail).toHaveBeenCalledWith('test-agent', filters);
     });
@@ -390,7 +390,7 @@ describe('TealTiger', () => {
 
       mockSSAClient.validatePolicies.mockResolvedValue(mockValidationResult);
 
-      const result = await TealTiger.validatePolicies(mockPolicies);
+      const result = await tealTigerInstance.validatePolicies(mockPolicies);
 
       expect(mockSSAClient.validatePolicies).toHaveBeenCalledWith(mockPolicies);
       expect(result).toEqual(mockValidationResult);
@@ -424,7 +424,7 @@ describe('TealTiger', () => {
 
       const mockToolExecutor = jest.fn().mockRejectedValue(new Error('Tool execution failed'));
 
-      const result = await TealTiger.executeTool(
+      const result = await tealTigerInstance.executeTool(
         'test-tool',
         { param1: 'value1' },
         undefined, // context
@@ -453,7 +453,7 @@ describe('TealTiger', () => {
 
       const mockToolExecutor = jest.fn();
 
-      const result = await TealTiger.executeTool('test-tool', {}, undefined, mockToolExecutor);
+      const result = await tealTigerInstance.executeTool('test-tool', {}, undefined, mockToolExecutor);
       
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('POLICY_ERROR');
@@ -493,7 +493,7 @@ describe('TealTiger', () => {
         decision: mockDecision
       });
 
-      await TealTiger.executeTool('test-tool', {}, undefined, jest.fn());
+      await tealTigerInstance.executeTool('test-tool', {}, undefined, jest.fn());
 
       expect(console.log).toHaveBeenCalledWith(
         '[TealTiger SDK] Tool denied:',

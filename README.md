@@ -18,14 +18,19 @@
 
 > 📖 **[Read the introduction blog post](https://dev.to/nagasatish_chilakamarti_2/introducing-tealtiger-ai-security-cost-control-made-simple-4lma)** to learn more about TealTiger!
 
-## ✨ What's New in v1.0.0
+## ✨ What's New in v1.1.0
 
-**Drop-in Client Wrappers** - Secure AI clients with zero code changes!
+**Multi-Provider Support** - 95%+ market coverage with 7 LLM providers!
 
 - 🔌 **TealOpenAI** - Drop-in replacement for OpenAI client
 - 🔌 **TealAnthropic** - Drop-in replacement for Anthropic client
-- 🔌 **TealAzureOpenAI** - Drop-in replacement for Azure OpenAI client
-- 💰 **Cost Tracking** - Monitor costs across 30+ models
+- 🔌 **TealGemini** - Google Gemini with multimodal support
+- 🔌 **TealBedrock** - AWS Bedrock (Claude, Titan, Jurassic, Command, Llama)
+- 🔌 **TealAzureOpenAI** - Azure OpenAI with deployment support
+- 🔌 **TealMistral** - Mistral AI with European data residency
+- 🔌 **TealCohere** - Cohere with RAG and embeddings
+- 🌐 **TealMultiProvider** - Multi-provider orchestration with failover
+- 💰 **Cost Tracking** - Monitor costs across 50+ models
 - 💵 **Budget Management** - Enforce spending limits automatically
 - 🛡️ **Automatic Security** - Guardrails run on every request
 - ⚡ **100% Compatible** - No migration needed
@@ -76,6 +81,52 @@ const result = await guard.executeTool(
   { query: 'AI agent security' },
   { sessionId: 'user-session-123' }
 );
+```
+
+## 🌐 Supported Providers
+
+TealTiger supports 7 major LLM providers with 95%+ market coverage:
+
+| Provider | Client | Models | Features |
+|----------|--------|--------|----------|
+| **OpenAI** | `TealOpenAI` | GPT-4, GPT-3.5 Turbo | Chat, Completions, Embeddings |
+| **Anthropic** | `TealAnthropic` | Claude 3, Claude 2 | Chat, Streaming |
+| **Google** | `TealGemini` | Gemini Pro, Ultra | Multimodal, Safety Settings |
+| **AWS** | `TealBedrock` | Claude, Titan, Jurassic, Command, Llama | Multi-model, Regional |
+| **Azure** | `TealAzureOpenAI` | GPT-4, GPT-3.5 | Deployment-based, Azure AD |
+| **Mistral** | `TealMistral` | Large, Medium, Small, Mixtral | EU Data Residency, GDPR |
+| **Cohere** | `TealCohere` | Command, Embed | RAG, Citations, Connectors |
+
+### Multi-Provider Orchestration
+
+```typescript
+import { TealMultiProvider, TealOpenAI, TealAnthropic } from 'tealtiger';
+
+const multiProvider = new TealMultiProvider({
+  strategy: 'priority',      // or 'round-robin', 'cost', 'use-case'
+  enableFailover: true,
+  maxFailoverAttempts: 3
+});
+
+// Register providers with priorities
+multiProvider.registerProvider({
+  type: 'openai',
+  name: 'openai-primary',
+  client: new TealOpenAI({ apiKey: 'key' }),
+  priority: 1
+});
+
+multiProvider.registerProvider({
+  type: 'anthropic',
+  name: 'anthropic-backup',
+  client: new TealAnthropic({ apiKey: 'key' }),
+  priority: 2
+});
+
+// Automatic failover if primary fails
+const response = await multiProvider.chat({
+  messages: [{ role: 'user', content: 'Hello' }]
+});
 ```
 
 ## 🛡️ Client-Side Guardrails
@@ -668,6 +719,40 @@ tracker.addCustomPricing('custom-model-v1', {
 - ⚡ **High Performance** - <100ms latency for security decisions
 - 🔄 **Request Transformation** - Automatically transform risky requests
 - 📊 **Real-time Monitoring** - Track agent behavior and security events
+
+## 🛡️ OWASP Top 10 for Agentic Applications Coverage
+
+TealTiger v1.1.0 provides comprehensive coverage for **7 out of 10** OWASP Top 10 for Agentic Applications (ASI01-ASI10) vulnerabilities through its SDK-only architecture.
+
+### Coverage Summary
+
+| ASI | Vulnerability | Coverage | Components |
+|-----|--------------|----------|------------|
+| ASI01 | Goal Hijacking & Prompt Injection | 🟡 Partial | TealGuard, TealEngine |
+| ASI02 | Tool Misuse & Unauthorized Actions | 🟢 Full | TealEngine |
+| ASI03 | Identity & Access Control Failures | 🟢 Full | TealEngine |
+| ASI04 | Supply Chain Vulnerabilities | 🔧 Support | TealAudit |
+| ASI05 | Unsafe Code Execution | 🟢 Full | TealEngine |
+| ASI06 | Memory & Context Corruption | 🟢 Full | TealEngine, TealGuard |
+| ASI07 | Inter-Agent Communication Security | ❌ Platform | N/A |
+| ASI08 | Cascading Failures & Resource Exhaustion | 🟢 Full | TealCircuit, TealMonitor |
+| ASI09 | Harmful Content Generation | 🔧 Support | TealGuard |
+| ASI10 | Rogue Agent Behavior | 🟢 Full | TealMonitor, TealAudit |
+
+**Total Coverage: 7/10 ASIs (70%) with SDK alone**
+
+### Legend
+- 🟢 **Full Coverage**: Comprehensive protection via SDK
+- 🟡 **Partial Coverage**: Basic protection, advanced features require ML/platform
+- 🔧 **Support**: Logging/monitoring support, external tools recommended
+- ❌ **Platform Required**: Requires centralized infrastructure
+
+### Learn More
+- [Complete OWASP ASI Mapping](../../OWASP-AGENTIC-TOP10-TEALTIGER-MAPPING.md)
+- [OWASP Coverage Diagram](../../TEALTIGER-OWASP-COVERAGE-DIAGRAM.md)
+- [OWASP Top 10 for Agentic Applications](https://owasp.org/www-project-top-10-for-agentic-applications/)
+
+---
 
 ## 🎯 Use Cases
 

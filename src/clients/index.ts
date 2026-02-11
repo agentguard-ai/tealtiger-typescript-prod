@@ -7,3 +7,6 @@
 export * from './TealOpenAI';
 export * from './TealAnthropic';
 export * from './TealAzureOpenAI';
+export * from './TealGemini';
+export * from './TealBedrock';
+export * from './TealMultiProvider';

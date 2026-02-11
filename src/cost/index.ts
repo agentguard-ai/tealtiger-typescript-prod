@@ -9,3 +9,4 @@ export * from './pricing';
 export * from './CostTracker';
 export * from './CostStorage';
 export * from './BudgetManager';
+export * from './CostCalculator';

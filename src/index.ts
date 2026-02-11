@@ -4,8 +4,38 @@
  * This is the main entry point for the TealTiger SDK
  */
 
-// Main SDK class
+// Main SDK class (legacy)
 export { TealTiger } from './client/TealTiger';
+
+// Integrated Clients (v1.1.0)
+export { TealBaseClient, TealOpenAI, TealAnthropic } from './client';
+export type { TealClientConfig, RequestContext } from './client';
+export {
+  TealTigerError,
+  PolicyViolationError,
+  GuardrailViolationError,
+  CircuitOpenError,
+  AnomalyDetectedError
+} from './client';
+
+// TealEngine - Core Policy Framework (v1.1.0)
+export { TealEngine } from './core/engine';
+export type {
+  TealPolicy,
+  ToolPolicy,
+  IdentityPolicy,
+  CodeExecutionPolicy,
+  BehavioralPolicy,
+  MemoryPolicy,
+  ContentPolicy,
+  PolicyEvaluationResult,
+  RequestContext,
+  ValidationResult,
+  ValidationError,
+  ValidationWarning,
+  TestCase,
+  CoverageReport
+} from './core/engine';
 
 // Policy utilities
 export { 
