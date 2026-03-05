@@ -770,6 +770,49 @@ TealTiger v1.1.0 provides comprehensive coverage for **7 out of 10** OWASP Top 1
 - [Examples](https://github.com/agentguard-ai/tealtiger/tree/main/examples)
 - [Changelog](https://github.com/agentguard-ai/tealtiger/blob/main/CHANGELOG.md)
 
+## 🛡️ OWASP Coverage
+
+TealTiger provides comprehensive coverage for **7 out of 10** OWASP Top 10 for Agentic Applications (ASI01-ASI10):
+
+### Full Coverage (100%)
+- ✅ **ASI02**: Tool Misuse & Unauthorized Actions
+- ✅ **ASI03**: Excessive Agency & Autonomy
+- ✅ **ASI05**: Insecure Output Handling
+- ✅ **ASI06**: Excessive Costs & Resource Consumption
+- ✅ **ASI08**: Lack of Resilience & Error Handling
+- ✅ **ASI10**: Supply Chain & Dependency Risks
+
+### Partial Coverage (50-90%)
+- 🟡 **ASI01**: Agent Goal Hijacking & Prompt Injection (70%)
+- 🟡 **ASI04**: Sensitive Information Disclosure (60%)
+- 🟡 **ASI09**: Inadequate Access Controls (50%)
+
+### Platform Required
+- ⚠️ **ASI07**: Insufficient Logging & Monitoring (30% SDK, 100% with Platform)
+
+**Overall SDK Coverage**: 70% (7/10 ASIs)  
+**With Platform**: 100% (10/10 ASIs)
+
+📊 [View detailed OWASP coverage diagram](./docs/owasp-coverage-diagram.md)  
+📖 [Read complete OWASP mapping](../OWASP-AGENTIC-TOP10-TEALTIGER-MAPPING.md)
+
+### Key Differentiators
+
+1. **Comprehensive Cost Control** (ASI06)
+   - Only solution with 7-provider cost tracking
+   - Real-time budget enforcement
+   - Cost anomaly detection
+
+2. **Resilience Patterns** (ASI08)
+   - Circuit breaker implementation
+   - Automatic failover
+   - Health monitoring
+
+3. **Tool Security** (ASI02)
+   - Granular tool policies
+   - Parameter validation
+   - Rate limiting per tool
+
 ## 🤝 Contributing
 
 We welcome contributions! Please see our [Contributing Guide](https://github.com/agentguard-ai/tealtiger/blob/main/CONTRIBUTING.md).

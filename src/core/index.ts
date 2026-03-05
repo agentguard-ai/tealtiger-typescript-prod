@@ -5,6 +5,7 @@
  */
 
 export * from './engine';
+export * from './context';
 export * from './guard';
 export * from './monitor';
 export * from './circuit';

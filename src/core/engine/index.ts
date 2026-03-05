@@ -10,3 +10,5 @@ export { PolicyCache } from './PolicyCache';
 export { PolicyValidator } from './PolicyValidator';
 export { PolicyTester } from './PolicyTester';
 export * from './types';
+export * from './ModeResolver';
+export * from './TealEngineConfig';
