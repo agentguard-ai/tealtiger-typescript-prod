@@ -10,6 +10,8 @@ import { BudgetManager, BudgetEnforcementResult } from '../cost/BudgetManager';
 import { ICostStorage } from '../cost/CostStorage';
 import { CostRecord } from '../cost/types';
 import { generateId } from '../cost/utils';
+import { ExecutionContext } from '../core/context/ExecutionContext';
+import { ContextManager } from '../core/context/ContextManager';
 
 /**
  * Configuration for TealAnthropic client
@@ -67,6 +69,8 @@ export interface MessageCreateRequest {
   metadata?: {
     user_id?: string;
   };
+  /** Optional: Execution context for tracing (auto-generated if not provided) */
+  context?: ExecutionContext;
 }
 
 /**
@@ -138,6 +142,9 @@ export class TealAnthropic {
     const agentId = this.config.agentId || 'default-agent';
     const security: MessageCreateResponse['security'] = {};
 
+    // Ensure we have an ExecutionContext (auto-generate if not provided)
+    const executionContext = request.context || ContextManager.createContext();
+
     try {
       // 1. Run guardrails on input (if enabled)
       if (this.config.enableGuardrails && this.guardrailEngine) {
@@ -146,7 +153,9 @@ export class TealAnthropic {
           .map(m => this.extractTextContent(m.content))
           .join('\n');
 
-        const guardrailResult = await this.guardrailEngine.execute(userMessages);
+        const guardrailResult = await this.guardrailEngine.execute(userMessages, {
+          correlation_id: executionContext.correlation_id
+        });
         security.guardrailResult = guardrailResult;
 
         if (!guardrailResult.passed) {

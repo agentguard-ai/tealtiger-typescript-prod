@@ -11,7 +11,7 @@ import {
   ToolExecutionResult,
   isTealTigerError,
   TealTigerErrorCode
-} from '../src/index';
+} from 'tealtiger';
 
 interface CustomToolResult {
   success: boolean;

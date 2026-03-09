@@ -286,7 +286,7 @@ describe('TealAudit', () => {
 
       const filtered = audit.query({ agents: ['agent-1', 'agent-3'] });
       expect(filtered).toHaveLength(2);
-      expect(filtered.map(e => e.agentId)).toEqual(['agent-1', 'agent-3']);
+      expect(filtered.map(e => (e as any).agentId)).toEqual(['agent-1', 'agent-3']);
     });
 
     it('should filter by actions', () => {
@@ -318,7 +318,7 @@ describe('TealAudit', () => {
       });
 
       expect(filtered).toHaveLength(1);
-      expect(filtered[0].timestamp.toISOString()).toBe('2026-02-11T10:00:00.000Z');
+      expect((filtered[0] as any).timestamp.toISOString()).toBe('2026-02-11T10:00:00.000Z');
     });
 
     it('should filter by error presence', () => {
@@ -355,8 +355,8 @@ describe('TealAudit', () => {
       });
 
       expect(filtered).toHaveLength(1);
-      expect(filtered[0].agentId).toBe('agent-1');
-      expect(filtered[0].cost).toBe(0.05);
+      expect((filtered[0] as any).agentId).toBe('agent-1');
+      expect((filtered[0] as any).cost).toBe(0.05);
     });
 
     it('should return all events when no filter is provided', () => {
@@ -468,8 +468,8 @@ describe('TealAudit', () => {
       audit.log(createEvent({ agentId: 'agent-2' }));
 
       expect(events).toHaveLength(2);
-      expect(events[0].agentId).toBe('agent-1');
-      expect(events[1].agentId).toBe('agent-2');
+      expect((events[0] as any).agentId).toBe('agent-1');
+      expect((events[1] as any).agentId).toBe('agent-2');
     });
 
     it('should support multiple outputs simultaneously', () => {
@@ -503,7 +503,7 @@ describe('TealAudit', () => {
 
       const events = audit.query();
       expect(events).toHaveLength(3);
-      expect(events[0].agentId).toBe('agent-2'); // Oldest removed
+      expect((events[0] as any).agentId).toBe('agent-2'); // Oldest removed
     });
 
     it('should support disabling storage', () => {
@@ -617,7 +617,7 @@ describe('TealAudit', () => {
       }));
 
       const events = audit.query();
-      expect(events[0].policyDecisions).toEqual({
+      expect((events[0] as any).policyDecisions).toEqual({
         'tool.file_read': 'allowed',
         'identity.permissions': 'checked',
       });

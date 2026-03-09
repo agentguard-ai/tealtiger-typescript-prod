@@ -7,6 +7,9 @@
  * - OPEN: Circuit is tripped, requests fail immediately
  * - HALF-OPEN: Testing if the service has recovered
  * 
+ * Part of TealTiger v1.1.x - Enterprise Adoption Features
+ * Returns Decision objects for consistency with TealEngine and TealGuard.
+ * 
  * @example
  * ```typescript
  * const circuit = new TealCircuit({
@@ -26,6 +29,16 @@
  * }
  * ```
  */
+
+import { 
+  Decision, 
+  DecisionAction, 
+  ReasonCode, 
+  PolicyMode 
+} from '../engine/types';
+import { ExecutionContext } from '../context/ExecutionContext';
+import { ContextManager } from '../context/ContextManager';
+import { getComponentVersionsWithCircuit } from '../utils/version';
 
 /**
  * Circuit breaker states
@@ -122,6 +135,103 @@ export class TealCircuit {
    */
   getState(): CircuitState {
     return this.state;
+  }
+
+  /**
+   * Evaluate circuit state and return a Decision object
+   * 
+   * This method checks the circuit state and returns a Decision object
+   * indicating whether the operation should be allowed or denied.
+   * 
+   * Part of TealTiger v1.1.x - Enterprise Adoption Features (P0.2)
+   * Returns Decision object with same structure as TealEngine and TealGuard.
+   * 
+   * @param context - Execution context for tracing (auto-generated if not provided)
+   * @returns Decision object with action, reason_codes, risk_score, and metadata
+   * 
+   * @example
+   * ```typescript
+   * const context = ContextManager.createContext();
+   * const decision = circuit.evaluate(context);
+   * 
+   * if (decision.action === DecisionAction.DENY) {
+   *   console.log('Circuit is open, operation denied');
+   * }
+   * ```
+   */
+  evaluate(context?: ExecutionContext): Decision {
+    const startTime = Date.now();
+
+    // Ensure we have an ExecutionContext
+    const executionContext = context || ContextManager.createContext();
+
+    // Check if circuit should attempt reset
+    if (this.state === 'open' && this.shouldAttemptReset()) {
+      this.transitionTo('half-open');
+    }
+
+    // Determine action based on circuit state
+    let action: DecisionAction;
+    let reasonCodes: ReasonCode[];
+    let riskScore: number;
+    let reason: string;
+
+    if (this.state === 'open') {
+      action = DecisionAction.DENY;
+      reasonCodes = [ReasonCode.CIRCUIT_OPEN];
+      riskScore = 100; // Maximum risk when circuit is open
+      reason = 'Circuit breaker is open - service unavailable';
+    } else if (this.state === 'half-open') {
+      action = DecisionAction.ALLOW;
+      reasonCodes = [ReasonCode.CIRCUIT_HALF_OPEN];
+      riskScore = 50; // Medium risk in half-open state
+      reason = 'Circuit breaker is half-open - testing service recovery';
+    } else {
+      action = DecisionAction.ALLOW;
+      reasonCodes = [ReasonCode.POLICY_COMPLIANT];
+      riskScore = 0; // No risk when circuit is closed
+      reason = 'Circuit breaker is closed - normal operation';
+    }
+
+    // Get component versions
+    const componentVersions = getComponentVersionsWithCircuit();
+
+    // Build metadata
+    const metadata: Record<string, any> = {
+      evaluation_time_ms: Date.now() - startTime,
+      circuit_state: this.state,
+      failures: this.failures,
+      last_failure_time: this.lastFailureTime?.toISOString(),
+      half_open_attempts: this.halfOpenAttempts
+    };
+
+    if (executionContext.tenant_id) metadata.tenant_id = executionContext.tenant_id;
+    if (executionContext.application) metadata.application = executionContext.application;
+    if (executionContext.environment) metadata.environment = executionContext.environment;
+    if (executionContext.agent_purpose) metadata.agent_purpose = executionContext.agent_purpose;
+
+    // Build Decision object
+    const decision: Decision = {
+      action,
+      reason_codes: reasonCodes,
+      risk_score: riskScore,
+      mode: PolicyMode.ENFORCE, // Circuit breaker always enforces
+      policy_id: 'circuit.breaker',
+      policy_version: componentVersions.circuit || '1.1.0',
+      component_versions: componentVersions,
+      correlation_id: executionContext.correlation_id,
+      reason,
+      metadata
+    };
+
+    // Add optional fields only if defined
+    if (executionContext.trace_id) decision.trace_id = executionContext.trace_id;
+    if (executionContext.workflow_id) decision.workflow_id = executionContext.workflow_id;
+    if (executionContext.run_id) decision.run_id = executionContext.run_id;
+    if (executionContext.span_id) decision.span_id = executionContext.span_id;
+    if (executionContext.parent_span_id) decision.parent_span_id = executionContext.parent_span_id;
+
+    return decision;
   }
 
   /**

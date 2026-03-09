@@ -1,0 +1,44 @@
+{
+  "name": "TealTiger TypeScript SDK Development",
+  "dockerFile": "../Dockerfile.dev",
+  "context": "..",
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next",
+        "orta.vscode-jest",
+        "GitHub.copilot",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": true
+        },
+        "eslint.validate": [
+          "javascript",
+          "typescript"
+        ]
+      }
+    }
+  },
+  
+  "forwardPorts": [],
+  
+  "postCreateCommand": "npm install",
+  
+  "remoteUser": "tealtiger",
+  
+  "mounts": [
+    "source=${localEnv:HOME}/.aws,target=/home/tealtiger/.aws,type=bind,consistency=cached"
+  ],
+  
+  "containerEnv": {
+    "NODE_ENV": "development"
+  }
+}

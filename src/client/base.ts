@@ -8,7 +8,6 @@
 import { TealEngine } from '../core/engine/TealEngine';
 import type { PolicyEvaluationResult } from '../core/engine/types';
 import { TealGuard } from '../core/guard/TealGuard';
-import type { TealGuardResult } from '../core/guard/TealGuard';
 import { TealMonitor } from '../core/monitor/TealMonitor';
 import type { MonitoringEvent } from '../core/monitor/TealMonitor';
 import { TealCircuit } from '../core/circuit/TealCircuit';
@@ -172,7 +171,6 @@ export class TealBaseClient {
   ): Promise<T> {
     const startTime = Date.now();
     let policyResult: PolicyEvaluationResult | undefined;
-    let guardResult: TealGuardResult | undefined;
 
     try {
       // Step 1: Policy evaluation (TealEngine)
@@ -189,15 +187,14 @@ export class TealBaseClient {
 
       // Step 2: Content validation (TealGuard)
       if (this.guard && context.content) {
-        guardResult = await this.guard.check(context.content, {
-          agentId: context.agentId,
-          action: context.action
-        });
+        const guardDecision = await this.guard.check(context.content);
         
-        if (!guardResult.passed) {
-          const failedGuardrails = guardResult.guardrailResults.failedGuardrails;
+        if (guardDecision.action === 'DENY') {
+          const failedGuardrails = guardDecision.reason_codes
+            .filter(code => code !== 'POLICY_VIOLATION')
+            .map(code => code.toLowerCase().replace(/_/g, ' '));
           throw new GuardrailViolationError(
-            `TealGuard: Content validation failed - ${failedGuardrails.join(', ')}`,
+            `TealGuard: Content validation failed - ${guardDecision.reason}`,
             failedGuardrails
           );
         }

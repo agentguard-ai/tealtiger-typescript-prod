@@ -35,12 +35,292 @@
 - 🛡️ **Automatic Security** - Guardrails run on every request
 - ⚡ **100% Compatible** - No migration needed
 
+## 🏢 Enterprise-Ready Features (v1.1.x)
+
+TealTiger v1.1.x introduces five P0 enterprise features that transform TealTiger from a developer tool into an enterprise-ready AI security platform:
+
+### 🎯 Policy Rollout Modes
+
+Deploy AI security policies gradually with three enforcement levels:
+
+```typescript
+import { TealEngine, PolicyMode } from 'tealtiger';
+
+// Development: Monitor everything
+const devEngine = new TealEngine({
+  policies: myPolicies,
+  mode: {
+    defaultMode: PolicyMode.MONITOR
+  }
+});
+
+// Staging: Enforce critical, monitor others
+const stagingEngine = new TealEngine({
+  policies: myPolicies,
+  mode: {
+    defaultMode: PolicyMode.MONITOR,
+    policyModes: {
+      'tools.file_delete': PolicyMode.ENFORCE,
+      'identity.admin_access': PolicyMode.ENFORCE
+    }
+  }
+});
+
+// Production: Enforce all
+const prodEngine = new TealEngine({
+  policies: myPolicies,
+  mode: {
+    defaultMode: PolicyMode.ENFORCE
+  }
+});
+```
+
+**Modes:**
+- **ENFORCE**: Block operations that violate policies
+- **MONITOR**: Allow operations but log violations
+- **REPORT_ONLY**: Allow all operations, log decisions without evaluation
+
+### 📋 Deterministic Decision Contract
+
+Stable, typed Decision object for reliable integration flows:
+
+```typescript
+import { TealEngine, DecisionAction, ReasonCode } from 'tealtiger';
+
+const decision = engine.evaluate({
+  agentId: 'agent-001',
+  action: 'tool.execute',
+  tool: 'file_delete',
+  correlation_id: 'req-12345'
+});
+
+// Deterministic decision handling
+switch (decision.action) {
+  case DecisionAction.ALLOW:
+    await executeTool();
+    break;
+    
+  case DecisionAction.DENY:
+    if (decision.reason_codes.includes(ReasonCode.TOOL_NOT_ALLOWED)) {
+      throw new ToolNotAllowedError(decision.reason);
+    }
+    break;
+    
+  case DecisionAction.REQUIRE_APPROVAL:
+    await requestApproval(decision);
+    break;
+}
+
+// Risk-based routing
+if (decision.risk_score > 80) {
+  await escalateToHuman(decision);
+}
+```
+
+**Decision Fields:**
+- `action`: ALLOW, DENY, REDACT, TRANSFORM, REQUIRE_APPROVAL, DEGRADE
+- `reason_codes`: Standardized enum values (TOOL_NOT_ALLOWED, PII_DETECTED, etc.)
+- `risk_score`: 0-100 risk level
+- `correlation_id`: Request tracing
+- `metadata`: Cost, evaluation time, triggered policies
+
+### 🔗 Correlation IDs & Traceability
+
+End-to-end request tracking across all components:
+
+```typescript
+import { TealOpenAI, ContextManager } from 'tealtiger';
+
+// Create execution context
+const context = ContextManager.createContext({
+  tenant_id: 'acme-corp',
+  app: 'customer-support',
+  env: 'production',
+  agent_purpose: 'ticket_resolution'
+});
+
+const client = new TealOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  engine: myEngine,
+  audit: myAudit
+});
+
+// Context propagates through all operations
+const response = await client.chat.create({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello' }],
+  context: context
+});
+
+// Query audit logs by correlation_id
+const events = audit.query({
+  correlation_id: context.correlation_id
+});
+```
+
+**Features:**
+- Auto-generated UUID v4 correlation IDs
+- OpenTelemetry-compatible trace IDs
+- HTTP header propagation
+- Multi-tenant support
+
+### 🔒 Audit Schema & Redaction
+
+Versioned audit events with security-by-default redaction:
+
+```typescript
+import { TealAudit, RedactionLevel } from 'tealtiger';
+
+// Production configuration (secure by default)
+const prodAudit = new TealAudit({
+  outputs: [new FileOutput('./audit.log')],
+  config: {
+    input_redaction: RedactionLevel.HASH,
+    output_redaction: RedactionLevel.HASH,
+    detect_pii: true,
+    debug_mode: false
+  }
+});
+
+// Audit events never contain raw prompts/responses by default
+const event = {
+  schema_version: '1.0.0',
+  event_type: 'policy.evaluation',
+  correlation_id: 'req-12345',
+  action: DecisionAction.DENY,
+  reason_codes: [ReasonCode.TOOL_NOT_ALLOWED],
+  safe_inputs: {
+    hash: 'sha256:abc123...',
+    size: 1024,
+    category: 'tool_execution'
+  }
+};
+```
+
+**Redaction Levels:**
+- **HASH**: SHA-256 hash + size (default, production-safe)
+- **SIZE_ONLY**: Content size only
+- **CATEGORY_ONLY**: Content category only
+- **FULL**: Complete redaction
+- **NONE**: Raw content (debug mode only, requires explicit opt-in)
+
+### ✅ Policy Test Harness
+
+Validate policy behavior before production deployment:
+
+```typescript
+import { PolicyTester, TestCorpora } from 'tealtiger';
+
+// Define test suite
+const suite = {
+  name: 'Customer Support Agent Policy Tests',
+  policy: myPolicies,
+  mode: { defaultMode: PolicyMode.ENFORCE },
+  tests: [
+    {
+      name: 'Block file deletion',
+      context: {
+        agentId: 'support-001',
+        action: 'tool.execute',
+        tool: 'file_delete',
+        context: ContextManager.createContext()
+      },
+      expected: {
+        action: DecisionAction.DENY,
+        reason_codes: [ReasonCode.TOOL_NOT_ALLOWED]
+      }
+    },
+    // Include starter corpora
+    ...TestCorpora.promptInjection(),
+    ...TestCorpora.piiDetection()
+  ]
+};
+
+// Run tests
+const tester = new PolicyTester(engine);
+const report = tester.runSuite(suite);
+
+console.log(`Tests: ${report.passed}/${report.total} passed`);
+console.log(`Coverage: ${report.coverage?.coverage_percentage.toFixed(1)}%`);
+
+// Export for CI/CD
+const junitXml = tester.exportReport(report, 'junit');
+```
+
+**CLI Usage:**
+
+```bash
+# Run tests from file
+npx tealtiger test ./policies/customer-support.test.json
+
+# Generate coverage report
+npx tealtiger test ./policies/*.test.json --coverage
+
+# Export to JUnit XML for CI/CD
+npx tealtiger test ./policies/*.test.json --format=junit --output=./results.xml
+
+# Watch mode for development
+npx tealtiger test ./policies/*.test.json --watch
+```
+
+### 📚 Enterprise Documentation
+
+- [API Documentation](./docs/API-DOCUMENTATION.md) - Complete API reference
+- [Migration Guide](./docs/MIGRATION-GUIDE-v1.1.x.md) - Upgrade from v1.1.0
+- [Best Practices](./docs/BEST-PRACTICES.md) - Policy rollout strategies
+- [Troubleshooting](./docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [Examples](./examples/) - Complete integration examples
+
+### 📊 Enterprise Feature Comparison
+
+| Feature | v1.1.0 | v1.1.x Enterprise |
+|---------|--------|-------------------|
+| **Policy Enforcement** | ✅ Basic | ✅ Multi-mode (ENFORCE/MONITOR/REPORT_ONLY) |
+| **Decision Contract** | ⚠️ Untyped | ✅ Deterministic typed Decision object |
+| **Request Tracing** | ❌ None | ✅ Auto-generated correlation IDs |
+| **Audit Logging** | ⚠️ Basic | ✅ Versioned schema with PII redaction |
+| **Policy Testing** | ❌ Manual | ✅ Automated test harness + CLI |
+| **Risk Scoring** | ❌ None | ✅ 0-100 risk scores |
+| **Reason Codes** | ⚠️ Text only | ✅ Standardized enum values |
+| **Context Propagation** | ❌ Manual | ✅ Automatic through all components |
+| **Compliance Ready** | ⚠️ Partial | ✅ OWASP/SAIF/NIST aligned |
+| **CI/CD Integration** | ❌ None | ✅ JUnit XML export, exit codes |
+| **Production Safety** | ⚠️ Basic | ✅ Security-by-default redaction |
+| **Distributed Tracing** | ❌ None | ✅ OpenTelemetry compatible |
+
+**Legend:**
+- ✅ Full support
+- ⚠️ Partial support
+- ❌ Not available
+
+### 🎯 Enterprise Adoption Path
+
+1. **Week 1-2**: Start with MONITOR mode in development
+2. **Week 3-4**: Add correlation IDs and audit logging
+3. **Week 5-6**: Write policy tests and integrate with CI/CD
+4. **Week 7-8**: Deploy to staging with mixed modes (ENFORCE critical policies)
+5. **Week 9-10**: Production rollout with full ENFORCE mode
+6. **Ongoing**: Continuous policy testing and refinement
+
 ## 🚀 Quick Start
 
 ### Installation
 
+#### Via npm
 ```bash
 npm install tealtiger
+```
+
+#### Via Docker
+```bash
+# Pull and run
+docker pull ghcr.io/tealtiger/typescript-sdk:latest
+docker run -it --rm \
+  -e OPENAI_API_KEY=your-key \
+  ghcr.io/tealtiger/typescript-sdk:latest \
+  node
+
+# See DOCKER.md for more options
 ```
 
 ### Client-Side Guardrails (New!)
@@ -702,6 +982,16 @@ tracker.addCustomPricing('custom-model-v1', {
 ```
 
 ## 📋 Features
+
+### Enterprise Features (v1.1.x)
+- 🎯 **Policy Rollout Modes** - ENFORCE, MONITOR, REPORT_ONLY for safe deployment
+- 📋 **Deterministic Decision Contract** - Stable typed Decision object
+- 🔗 **Correlation IDs & Traceability** - End-to-end request tracking
+- 🔒 **Audit Schema & Redaction** - Versioned events with PII redaction
+- ✅ **Policy Test Harness** - CLI/library test runner for CI/CD
+- 📊 **Risk Scoring** - 0-100 risk scores for all decisions
+- 🏷️ **Reason Codes** - Standardized explainable decision codes
+- 🔄 **Context Propagation** - Automatic context flow through components
 
 ### Client-Side (Offline)
 - 🔍 **PII Detection** - Protect sensitive data

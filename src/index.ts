@@ -29,13 +29,71 @@ export type {
   MemoryPolicy,
   ContentPolicy,
   PolicyEvaluationResult,
-  RequestContext,
   ValidationResult,
   ValidationError,
   ValidationWarning,
   TestCase,
   CoverageReport
 } from './core/engine';
+
+// Enterprise Adoption Features (v1.1.x) - P0.1, P0.2, P0.3
+export type {
+  PolicyMode,
+  ModeConfig,
+  DecisionAction,
+  ReasonCode,
+  Decision,
+  ComponentVersions,
+  CostInfo
+} from './core/engine/types';
+
+export {
+  InvalidConfigurationError,
+  PolicyViolationError as EnginePolicyViolationError
+} from './core/engine/types';
+
+// ExecutionContext and ContextManager (P0.3)
+export { ContextManager } from './core/context/ContextManager';
+export type {
+  ExecutionContext,
+  ExecutionContextOptions
+} from './core/context/ExecutionContext';
+export { CONTEXT_HEADERS } from './core/context/ExecutionContext';
+
+// TealGuard - Enhanced Guardrails (v1.1.0)
+export { TealGuard } from './core/guard/TealGuard';
+export type {
+  TealGuardConfig,
+  TealGuardResult,
+  CustomGuardrailRule
+} from './core/guard/TealGuard';
+
+// TealCircuit - Circuit Breaker (v1.1.0)
+export { TealCircuit, CircuitOpenError as TealCircuitOpenError } from './core/circuit/TealCircuit';
+export type {
+  CircuitState,
+  TealCircuitConfig
+} from './core/circuit/TealCircuit';
+
+// TealAudit - Audit Logging (v1.1.x) - P0.4
+export { TealAudit, ConsoleOutput, CustomOutput } from './core/audit/TealAudit';
+export type {
+  AuditEvent as LegacyAuditEvent,
+  AuditFilter,
+  AuditConfig,
+  AuditOutput,
+  TealAuditConfig,
+  CustomRedactionRule
+} from './core/audit/TealAudit';
+
+export type {
+  AuditEvent as VersionedAuditEvent,
+  AuditEventType
+} from './core/audit/types';
+
+export {
+  RedactionLevel
+} from './core/audit/redaction';
 
 // Policy utilities
 export { 
@@ -93,8 +151,7 @@ export type {
   PolicyTransformation,
   AuditEntry,
   AuditTrailResponse,
-  SDKStatistics,
-  TealTigerError
+  SDKStatistics
 } from './types';
 
 // Error classes
@@ -174,11 +231,9 @@ export type {
   BudgetEnforcementResult
 } from './cost/BudgetManager';
 
-// Drop-in Client Wrappers
+// Drop-in Client Wrappers (legacy - use TealOpenAI/TealAnthropic from './client' instead)
 export {
-  TealOpenAI,
   createTealOpenAI,
-  TealAnthropic,
   createTealAnthropic,
   TealAzureOpenAI,
   createTealAzureOpenAI

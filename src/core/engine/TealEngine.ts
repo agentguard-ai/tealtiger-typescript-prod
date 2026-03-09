@@ -16,10 +16,21 @@ import {
   ValidationResult,
   TestCase,
   CoverageReport,
+  Decision,
+  DecisionAction,
+  ReasonCode,
+  PolicyMode,
+  ModeConfig,
+  ComponentVersions,
+  InvalidConfigurationError,
 } from './types';
 import { PolicyEvaluator } from './PolicyEvaluator';
 import { PolicyCache } from './PolicyCache';
 import { PolicyValidator } from './PolicyValidator';
+import { ModeResolver } from './ModeResolver';
+import { getComponentVersions, getPackageVersion } from '../utils/version';
+import { ExecutionContext } from '../context/ExecutionContext';
+import { ContextManager } from '../context/ContextManager';
 
 /**
  * TealEngine - Policy Definition, Validation, and Enforcement Engine
@@ -58,11 +69,14 @@ import { PolicyValidator } from './PolicyValidator';
  * ```
  */
 export class TealEngine {
-  /** TealEngine version */
-  public static readonly VERSION = '1.1.0';
+  /** TealEngine version (dynamically loaded from package.json) */
+  public static readonly VERSION = getPackageVersion();
 
   /** Policy configuration */
   private policies: TealPolicy;
+
+  /** Mode configuration */
+  private modeConfig: ModeConfig;
 
   /** Policy cache */
   private cache: PolicyCache;
@@ -72,6 +86,9 @@ export class TealEngine {
 
   /** Policy validator instance */
   private validator: PolicyValidator;
+
+  /** Component versions */
+  private componentVersions: ComponentVersions;
 
   /**
    * Creates a new TealEngine instance
@@ -102,9 +119,24 @@ export class TealEngine {
       cacheEnabled?: boolean;
       /** Maximum cache size */
       cacheMaxSize?: number;
+      /** Mode configuration */
+      mode?: ModeConfig;
     }
   ) {
     this.policies = policies;
+    
+    // Initialize mode configuration (default to ENFORCE)
+    this.modeConfig = options?.mode || {
+      default: PolicyMode.ENFORCE
+    };
+    
+    // Validate mode configuration
+    if (this.modeConfig) {
+      ModeResolver.validateModeConfiguration(this.modeConfig);
+    }
+    
+    // Initialize component versions from package.json
+    this.componentVersions = getComponentVersions();
     
     // Build cache options, only including defined values
     const cacheOptions: {
@@ -192,6 +224,270 @@ export class TealEngine {
   }
 
   /**
+   * Evaluates a request with mode-specific behavior and returns a Decision object
+   * 
+   * @param context - Request context to evaluate
+   * @param executionContext - Execution context for tracing (optional, will be auto-generated if not provided)
+   * @returns Decision object with mode-specific behavior
+   * 
+   * @example
+   * ```typescript
+   * const decision = engine.evaluateWithMode({
+   *   agentId: 'agent-001',
+   *   action: 'tool.execute',
+   *   tool: 'file_delete'
+   * });
+   * 
+   * if (decision.action === DecisionAction.DENY) {
+   *   throw new Error(decision.reason);
+   * }
+   * ```
+   */
+  public evaluateWithMode(
+    context: RequestContext,
+    executionContext?: ExecutionContext
+  ): Decision {
+    const startTime = Date.now();
+
+    // Ensure we have an execution context with correlation_id
+    const execContext = executionContext || ContextManager.createContext();
+
+    // Resolve the effective mode for this policy
+    const policyId = this.getPolicyIdFromContext(context);
+    
+    const modeResolution = ModeResolver.resolvePolicyMode({
+      policyId,
+      ...(executionContext?.environment && { environment: executionContext.environment }),
+      modeConfig: this.modeConfig
+    });
+    
+    const effectiveMode = modeResolution.mode;
+
+    // REPORT_ONLY mode: Always allow without evaluating policies
+    if (effectiveMode === PolicyMode.REPORT_ONLY) {
+      const metadata: Record<string, any> = {
+        evaluation_time_ms: Date.now() - startTime,
+        cache_hit: false,
+        triggered_policies: [],
+        evaluation_performed: false
+      };
+      
+      if (execContext.tenant_id) metadata.tenant_id = execContext.tenant_id;
+      if (execContext.application) metadata.application = execContext.application;
+      if (execContext.environment) metadata.environment = execContext.environment;
+      if (execContext.agent_purpose) metadata.agent_purpose = execContext.agent_purpose;
+
+      const decision: Decision = {
+        action: DecisionAction.ALLOW,
+        reason_codes: [ReasonCode.REPORT_ONLY_MODE],
+        risk_score: 0,
+        mode: PolicyMode.REPORT_ONLY,
+        policy_id: policyId,
+        policy_version: TealEngine.VERSION,
+        component_versions: this.componentVersions,
+        correlation_id: execContext.correlation_id,
+        ...(execContext.trace_id && { trace_id: execContext.trace_id }),
+        ...(execContext.workflow_id && { workflow_id: execContext.workflow_id }),
+        ...(execContext.run_id && { run_id: execContext.run_id }),
+        ...(execContext.span_id && { span_id: execContext.span_id }),
+        ...(execContext.parent_span_id && { parent_span_id: execContext.parent_span_id }),
+        ...(context.metadata?.provider && { provider: context.metadata.provider as string }),
+        reason: 'Request allowed in REPORT_ONLY mode (policy evaluation skipped)',
+        metadata
+      };
+
+      return decision;
+    }
+
+    // Evaluate policies using PolicyEvaluator
+    const evalResult = this.evaluator.evaluate(context, this.policies);
+
+    // Calculate risk score based on evaluation result
+    const riskScore = this.calculateRiskScore(evalResult);
+
+    // Determine reason codes
+    const reasonCodes = this.determineReasonCodes(evalResult);
+
+    // MONITOR mode: Always allow but log violations
+    if (effectiveMode === PolicyMode.MONITOR) {
+      const metadata: Record<string, any> = {
+        evaluation_time_ms: Date.now() - startTime,
+        cache_hit: false,
+        triggered_policies: evalResult.triggeredPolicies,
+        evaluation_performed: true
+      };
+      
+      if (execContext.tenant_id) metadata.tenant_id = execContext.tenant_id;
+      if (execContext.application) metadata.application = execContext.application;
+      if (execContext.environment) metadata.environment = execContext.environment;
+      if (execContext.agent_purpose) metadata.agent_purpose = execContext.agent_purpose;
+
+      const decision: Decision = {
+        action: DecisionAction.ALLOW,
+        reason_codes: evalResult.allowed 
+          ? [ReasonCode.POLICY_COMPLIANT]
+          : [ReasonCode.MONITOR_MODE_VIOLATION, ...reasonCodes],
+        risk_score: riskScore,
+        mode: PolicyMode.MONITOR,
+        policy_id: policyId,
+        policy_version: TealEngine.VERSION,
+        component_versions: this.componentVersions,
+        correlation_id: execContext.correlation_id,
+        ...(execContext.trace_id && { trace_id: execContext.trace_id }),
+        ...(execContext.workflow_id && { workflow_id: execContext.workflow_id }),
+        ...(execContext.run_id && { run_id: execContext.run_id }),
+        ...(execContext.span_id && { span_id: execContext.span_id }),
+        ...(execContext.parent_span_id && { parent_span_id: execContext.parent_span_id }),
+        ...(context.metadata?.provider && { provider: context.metadata.provider as string }),
+        reason: evalResult.allowed
+          ? 'Request allowed and compliant with policy'
+          : `Request allowed in MONITOR mode but would violate policy: ${evalResult.reason}`,
+        metadata
+      };
+
+      return decision;
+    }
+
+    // ENFORCE mode: Block violations, allow compliant requests
+    if (effectiveMode === PolicyMode.ENFORCE) {
+      const metadata: Record<string, any> = {
+        evaluation_time_ms: Date.now() - startTime,
+        cache_hit: false,
+        triggered_policies: evalResult.triggeredPolicies,
+        evaluation_performed: true
+      };
+      
+      if (execContext.tenant_id) metadata.tenant_id = execContext.tenant_id;
+      if (execContext.application) metadata.application = execContext.application;
+      if (execContext.environment) metadata.environment = execContext.environment;
+      if (execContext.agent_purpose) metadata.agent_purpose = execContext.agent_purpose;
+
+      const decision: Decision = {
+        action: evalResult.allowed ? DecisionAction.ALLOW : DecisionAction.DENY,
+        reason_codes: evalResult.allowed 
+          ? [ReasonCode.POLICY_COMPLIANT]
+          : reasonCodes,
+        risk_score: riskScore,
+        mode: PolicyMode.ENFORCE,
+        policy_id: policyId,
+        policy_version: TealEngine.VERSION,
+        component_versions: this.componentVersions,
+        correlation_id: execContext.correlation_id,
+        ...(execContext.trace_id && { trace_id: execContext.trace_id }),
+        ...(execContext.workflow_id && { workflow_id: execContext.workflow_id }),
+        ...(execContext.run_id && { run_id: execContext.run_id }),
+        ...(execContext.span_id && { span_id: execContext.span_id }),
+        ...(execContext.parent_span_id && { parent_span_id: execContext.parent_span_id }),
+        ...(context.metadata?.provider && { provider: context.metadata.provider as string }),
+        reason: evalResult.allowed
+          ? 'Request allowed and compliant with policy'
+          : evalResult.reason || 'Request denied by policy',
+        metadata
+      };
+
+      return decision;
+    }
+
+    // Fallback (should never reach here due to mode validation)
+    throw new InvalidConfigurationError(`Invalid policy mode: ${effectiveMode}`);
+  }
+
+  /**
+   * Calculates risk score based on policy evaluation result
+   * 
+   * @private
+   * @param result - Policy evaluation result
+   * @returns Risk score (0-100)
+   */
+  private calculateRiskScore(result: PolicyEvaluationResult): number {
+    if (result.allowed) {
+      return 0; // No risk if allowed
+    }
+
+    // Base risk score for violations
+    let riskScore = 50;
+
+    // Increase risk based on triggered policies
+    const triggeredCount = result.triggeredPolicies.length;
+    riskScore += Math.min(triggeredCount * 10, 40);
+
+    // Check for high-risk policy violations
+    const highRiskPatterns = [
+      'tools.file_delete',
+      'tools.database_delete',
+      'identity.forbidden',
+      'codeExecution.blockedFunctions',
+      'codeExecution.blockedPatterns'
+    ];
+
+    for (const policy of result.triggeredPolicies) {
+      if (highRiskPatterns.some(pattern => policy.includes(pattern))) {
+        riskScore = Math.min(riskScore + 20, 100);
+      }
+    }
+
+    return Math.min(Math.max(riskScore, 0), 100);
+  }
+
+  /**
+   * Determines reason codes from policy evaluation result
+   * 
+   * @private
+   * @param result - Policy evaluation result
+   * @returns Array of reason codes
+   */
+  private determineReasonCodes(
+    result: PolicyEvaluationResult
+  ): ReasonCode[] {
+    if (result.allowed) {
+      return [ReasonCode.POLICY_COMPLIANT];
+    }
+
+    const codes: ReasonCode[] = [ReasonCode.POLICY_VIOLATION];
+
+    // Map triggered policies to reason codes
+    for (const policy of result.triggeredPolicies) {
+      if (policy.includes('tools')) {
+        // Check if it's a tool not allowed violation
+        if (policy.includes('allowed') || result.reason?.includes('blocked') || result.reason?.includes('not defined')) {
+          codes.push(ReasonCode.TOOL_NOT_ALLOWED);
+        } else if (policy.includes('rateLimit')) {
+          codes.push(ReasonCode.TOOL_RATE_LIMIT_EXCEEDED);
+        }
+      } else if (policy.includes('identity.forbidden')) {
+        codes.push(ReasonCode.POLICY_VIOLATION);
+      } else if (policy.includes('codeExecution')) {
+        codes.push(ReasonCode.UNSAFE_CODE_DETECTED);
+      } else if (policy.includes('behavioral.costLimit')) {
+        codes.push(ReasonCode.COST_BUDGET_EXCEEDED);
+      }
+    }
+
+    // Remove duplicates
+    return Array.from(new Set(codes));
+  }
+
+  /**
+   * Extracts policy ID from request context
+   * 
+   * @private
+   * @param context - Request context
+   * @returns Policy ID
+   */
+  private getPolicyIdFromContext(context: RequestContext): string {
+    // Generate policy ID based on context
+    if (context.tool) {
+      return `tools.${context.tool}`;
+    } else if (context.code) {
+      return 'codeExecution';
+    } else if (context.action) {
+      return `action.${context.action}`;
+    } else {
+      return 'general';
+    }
+  }
+
+  /**
    * Validates the policy configuration
    * 
    * @returns Validation result with errors and warnings
@@ -270,6 +566,15 @@ export class TealEngine {
    */
   public getPolicies(): Readonly<TealPolicy> {
     return Object.freeze({ ...this.policies });
+  }
+
+  /**
+   * Gets the current mode configuration
+   * 
+   * @returns Current mode configuration
+   */
+  public getModeConfig(): Readonly<ModeConfig> {
+    return Object.freeze({ ...this.modeConfig });
   }
 
   /**

@@ -8,7 +8,15 @@
  */
 
 import { TealEngine } from '../engine/TealEngine';
-import type { TealPolicy, RequestContext } from '../engine/types';
+import type { 
+  TealPolicy, 
+  RequestContext, 
+  Decision
+} from '../engine/types';
+import { DecisionAction, ReasonCode, PolicyMode } from '../engine/types';
+import { ExecutionContext } from '../context/ExecutionContext';
+import { ContextManager } from '../context/ContextManager';
+import { getComponentVersionsWithGuard } from '../utils/version';
 import {
   GuardrailEngine,
   GuardrailEngineOptions,
@@ -75,7 +83,7 @@ export interface TealGuardResult {
  * Cache Entry
  */
 interface CacheEntry {
-  result: TealGuardResult;
+  result: Decision;
   timestamp: number;
 }
 
@@ -136,72 +144,96 @@ export class TealGuard {
   /**
    * Check input against all guardrails and policies
    * 
+   * Returns a Decision object with the same structure as TealEngine for consistency.
+   * 
    * Optimizations:
    * - Parallel execution of independent guardrails
    * - Result caching with LRU eviction
    * - Early return on cache hit
+   * 
+   * @param input - Input to check
+   * @param context - Execution context with correlation_id (auto-generated if not provided)
+   * @returns Decision object with action, reason_codes, risk_score, and metadata
    */
-  async check(input: any, context: Record<string, any> = {}): Promise<TealGuardResult> {
+  async check(input: any, context?: ExecutionContext): Promise<Decision> {
     const startTime = Date.now();
 
-    // Check cache first
+    // Ensure we have a valid ExecutionContext
+    const executionContext = context || ContextManager.createContext();
+
+    // Check cache first (using correlation_id as part of cache key)
     if (this.enableCache) {
-      const cacheKey = this.generateCacheKey(input, context);
+      const cacheKey = this.generateCacheKey(input, executionContext);
       const cached = this.getFromCache(cacheKey);
       
       if (cached) {
-        // Update execution time to reflect cache lookup
-        return {
+        // Update correlation_id and metadata for cache hit
+        const updatedDecision: Decision = {
           ...cached,
-          executionTime: Date.now() - startTime,
-          cacheHit: true,
-          timestamp: new Date().toISOString()
+          correlation_id: executionContext.correlation_id,
+          metadata: {
+            ...cached.metadata,
+            evaluation_time_ms: Date.now() - startTime,
+            cache_hit: true
+          }
         };
+        
+        // Update optional fields only if defined
+        if (executionContext.trace_id) updatedDecision.trace_id = executionContext.trace_id;
+        if (executionContext.workflow_id) updatedDecision.workflow_id = executionContext.workflow_id;
+        if (executionContext.run_id) updatedDecision.run_id = executionContext.run_id;
+        if (executionContext.span_id) updatedDecision.span_id = executionContext.span_id;
+        if (executionContext.parent_span_id) updatedDecision.parent_span_id = executionContext.parent_span_id;
+        
+        return updatedDecision;
       }
     }
 
     // Execute guardrails (parallel execution handled by GuardrailEngine)
-    const guardrailResults = await this.guardrailEngine.execute(input, context);
+    const guardrailResults = await this.guardrailEngine.execute(input, {
+      correlation_id: executionContext.correlation_id
+    });
 
     // Evaluate policy if policy-driven mode is enabled
-    let policyResult;
+    let policyDecision: Decision | undefined;
     if (this.config.policyDriven && this.engine) {
       const requestContext: RequestContext = {
-        agentId: context.agentId || 'default',
-        action: context.action || 'guardrail.check',
+        agentId: executionContext.tenant_id || 'default',
+        action: 'guardrail.check',
         content: typeof input === 'string' ? input : JSON.stringify(input),
-        ...context
+        metadata: {
+          correlation_id: executionContext.correlation_id,
+          trace_id: executionContext.trace_id,
+          workflow_id: executionContext.workflow_id,
+          run_id: executionContext.run_id,
+          span_id: executionContext.span_id
+        }
       };
 
-      const evaluation = this.engine.evaluate(requestContext);
-      policyResult = {
-        allowed: evaluation.allowed,
-        triggeredPolicies: evaluation.triggeredPolicies,
-        ...(evaluation.reason && { reason: evaluation.reason })
-      };
+      policyDecision = this.engine.evaluateWithMode(requestContext, executionContext);
     }
 
     const executionTime = Date.now() - startTime;
 
-    // Combine results
-    const passed = guardrailResults.passed && (policyResult?.allowed ?? true);
-
-    const result: TealGuardResult = {
+    // Determine overall action based on guardrail and policy results
+    const passed = guardrailResults.passed && (policyDecision?.action === DecisionAction.ALLOW || !policyDecision);
+    
+    // Build Decision object
+    const decision = this.buildDecision(
       passed,
       guardrailResults,
-      executionTime,
-      cacheHit: false,
-      timestamp: new Date().toISOString(),
-      ...(policyResult && { policyResult })
-    };
+      policyDecision,
+      executionContext,
+      executionTime
+    );
 
     // Cache result
     if (this.enableCache) {
-      const cacheKey = this.generateCacheKey(input, context);
-      this.addToCache(cacheKey, result);
+      const cacheKey = this.generateCacheKey(input, executionContext);
+      this.addToCache(cacheKey, decision);
     }
 
-    return result;
+    return decision;
   }
 
   /**
@@ -320,14 +352,238 @@ export class TealGuard {
   }
 
   /**
+   * Build Decision object from guardrail and policy results
+   * 
+   * @private
+   * @param passed - Whether all checks passed
+   * @param guardrailResults - Results from guardrail execution
+   * @param policyDecision - Optional policy decision
+   * @param context - Execution context
+   * @param executionTime - Execution time in milliseconds
+   * @returns Decision object
+   */
+  private buildDecision(
+    passed: boolean,
+    guardrailResults: GuardrailEngineResult,
+    policyDecision: Decision | undefined,
+    context: ExecutionContext,
+    executionTime: number
+  ): Decision {
+    // Determine action
+    let action: DecisionAction;
+    if (policyDecision && policyDecision.action !== DecisionAction.ALLOW) {
+      action = policyDecision.action;
+    } else if (!passed) {
+      action = DecisionAction.DENY;
+    } else {
+      action = DecisionAction.ALLOW;
+    }
+
+    // Determine reason codes
+    const reasonCodes = this.determineReasonCodes(guardrailResults, policyDecision);
+
+    // Calculate risk score
+    const riskScore = this.calculateRiskScore(guardrailResults, policyDecision);
+
+    // Build human-readable reason
+    const reason = this.buildReason(passed, guardrailResults, policyDecision);
+
+    // Get component versions
+    const componentVersions = getComponentVersionsWithGuard();
+
+    // Determine mode (default to ENFORCE if not policy-driven)
+    const mode = policyDecision?.mode || PolicyMode.ENFORCE;
+
+    // Build triggered policies list
+    const triggeredPolicies: string[] = [];
+    if (!guardrailResults.passed) {
+      guardrailResults.results
+        .filter(r => r.result && !r.result.passed)
+        .forEach(r => triggeredPolicies.push(`guardrail.${r.guardrailName}`));
+    }
+    if (policyDecision?.metadata?.triggered_policies) {
+      triggeredPolicies.push(...policyDecision.metadata.triggered_policies);
+    }
+
+    // Build metadata object with only defined values
+    const metadata: Record<string, any> = {
+      evaluation_time_ms: executionTime,
+      cache_hit: false,
+      guardrail_results: {
+        passed: guardrailResults.passed,
+        total: guardrailResults.results.length,
+        failed: guardrailResults.results.filter(r => r.result && !r.result.passed).length
+      }
+    };
+
+    if (triggeredPolicies.length > 0) {
+      metadata.triggered_policies = triggeredPolicies;
+    }
+    if (context.tenant_id) metadata.tenant_id = context.tenant_id;
+    if (context.application) metadata.application = context.application;
+    if (context.environment) metadata.environment = context.environment;
+    if (context.agent_purpose) metadata.agent_purpose = context.agent_purpose;
+
+    // Build Decision object with only defined optional fields
+    const decision: Decision = {
+      action,
+      reason_codes: reasonCodes,
+      risk_score: riskScore,
+      mode,
+      policy_id: 'guardrail.check',
+      policy_version: componentVersions.guard || '1.1.0',
+      component_versions: componentVersions,
+      correlation_id: context.correlation_id,
+      reason,
+      metadata
+    };
+
+    // Add optional fields only if defined
+    if (context.trace_id) decision.trace_id = context.trace_id;
+    if (context.workflow_id) decision.workflow_id = context.workflow_id;
+    if (context.run_id) decision.run_id = context.run_id;
+    if (context.span_id) decision.span_id = context.span_id;
+    if (context.parent_span_id) decision.parent_span_id = context.parent_span_id;
+
+    return decision;
+  }
+
+  /**
+   * Determine reason codes from guardrail and policy results
+   * 
+   * @private
+   * @param guardrailResults - Guardrail execution results
+   * @param policyDecision - Optional policy decision
+   * @returns Array of reason codes
+   */
+  private determineReasonCodes(
+    guardrailResults: GuardrailEngineResult,
+    policyDecision?: Decision
+  ): ReasonCode[] {
+    const codes: ReasonCode[] = [];
+
+    // If policy decision exists, include its reason codes
+    if (policyDecision) {
+      codes.push(...policyDecision.reason_codes);
+    }
+
+    // Add guardrail-specific reason codes
+    if (!guardrailResults.passed) {
+      for (const execResult of guardrailResults.results) {
+        if (execResult.result && !execResult.result.passed) {
+          const name = execResult.guardrailName;
+          // Map guardrail names to reason codes
+          if (name.toLowerCase().includes('pii')) {
+            codes.push(ReasonCode.PII_DETECTED);
+          } else if (name.toLowerCase().includes('injection')) {
+            codes.push(ReasonCode.PROMPT_INJECTION_DETECTED);
+          } else if (name.toLowerCase().includes('harmful') || name.toLowerCase().includes('content')) {
+            codes.push(ReasonCode.HARMFUL_CONTENT_DETECTED);
+          } else if (name.toLowerCase().includes('code')) {
+            codes.push(ReasonCode.UNSAFE_CODE_DETECTED);
+          } else {
+            // Generic policy violation
+            if (!codes.includes(ReasonCode.POLICY_VIOLATION)) {
+              codes.push(ReasonCode.POLICY_VIOLATION);
+            }
+          }
+        }
+      }
+    }
+
+    // If all passed and no codes yet, mark as compliant
+    if (codes.length === 0) {
+      codes.push(ReasonCode.POLICY_COMPLIANT);
+    }
+
+    // Remove duplicates
+    return Array.from(new Set(codes));
+  }
+
+  /**
+   * Calculate risk score from guardrail and policy results
+   * 
+   * @private
+   * @param guardrailResults - Guardrail execution results
+   * @param policyDecision - Optional policy decision
+   * @returns Risk score (0-100)
+   */
+  private calculateRiskScore(
+    guardrailResults: GuardrailEngineResult,
+    policyDecision?: Decision
+  ): number {
+    // If policy decision exists and has higher risk, use it
+    if (policyDecision && policyDecision.risk_score > 0) {
+      return policyDecision.risk_score;
+    }
+
+    // If all guardrails passed, no risk
+    if (guardrailResults.passed) {
+      return 0;
+    }
+
+    // Base risk score for violations
+    let riskScore = 50;
+
+    // Increase risk based on number of failed guardrails
+    const failedCount = guardrailResults.results.filter(r => r.result && !r.result.passed).length;
+    riskScore += Math.min(failedCount * 15, 40);
+
+    // Check for high-risk guardrail failures
+    const highRiskGuardrails = ['pii', 'injection', 'harmful', 'unsafe'];
+    for (const execResult of guardrailResults.results) {
+      if (execResult.result && !execResult.result.passed) {
+        const isHighRisk = highRiskGuardrails.some(pattern => 
+          execResult.guardrailName.toLowerCase().includes(pattern)
+        );
+        if (isHighRisk) {
+          riskScore = Math.min(riskScore + 10, 100);
+        }
+      }
+    }
+
+    return Math.min(Math.max(riskScore, 0), 100);
+  }
+
+  /**
+   * Build human-readable reason from results
+   * 
+   * @private
+   * @param passed - Whether all checks passed
+   * @param guardrailResults - Guardrail execution results
+   * @param policyDecision - Optional policy decision
+   * @returns Human-readable reason string
+   */
+  private buildReason(
+    passed: boolean,
+    guardrailResults: GuardrailEngineResult,
+    policyDecision?: Decision
+  ): string {
+    if (passed) {
+      return 'All guardrail checks passed';
+    }
+
+    const failedGuardrails = guardrailResults.results
+      .filter(r => r.result && !r.result.passed)
+      .map(r => r.guardrailName);
+
+    let reason = `Guardrail check failed: ${failedGuardrails.join(', ')}`;
+
+    if (policyDecision && policyDecision.action !== DecisionAction.ALLOW) {
+      reason += ` | Policy: ${policyDecision.reason}`;
+    }
+
+    return reason;
+  }
+
+  /**
    * Generate cache key from input and context
    */
-  private generateCacheKey(input: any, context: Record<string, any>): string {
+  private generateCacheKey(input: any, _context: ExecutionContext): string {
     const inputStr = typeof input === 'string' ? input : JSON.stringify(input);
-    const contextStr = JSON.stringify(context);
-    
-    // Simple hash function for cache key
-    return this.simpleHash(inputStr + contextStr);
+    // Don't include correlation_id in cache key since it's unique per request
+    // Use a stable hash of just the input
+    return this.simpleHash(inputStr);
   }
 
   /**
@@ -346,7 +602,7 @@ export class TealGuard {
   /**
    * Get result from cache
    */
-  private getFromCache(key: string): TealGuardResult | null {
+  private getFromCache(key: string): Decision | null {
     const entry = this.cache.get(key);
     
     if (!entry) {
@@ -371,7 +627,7 @@ export class TealGuard {
   /**
    * Add result to cache with LRU eviction
    */
-  private addToCache(key: string, result: TealGuardResult): void {
+  private addToCache(key: string, result: Decision): void {
     // Check if cache is full
     if (this.cache.size >= this.cacheMaxSize && !this.cache.has(key)) {
       // Evict least recently used

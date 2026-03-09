@@ -1,0 +1,121 @@
+{
+  "name": "Example Policy Test Suite",
+  "description": "Example test suite demonstrating policy testing",
+  "policy": {
+    "tools": {
+      "file_delete": {
+        "allowed": false
+      },
+      "file_read": {
+        "allowed": true,
+        "maxSize": "1MB"
+      }
+    },
+    "content": {
+      "moderation": {
+        "enabled": true,
+        "threshold": 0.7
+      },
+      "pii": {
+        "enabled": true,
+        "blockedTypes": ["ssn", "credit_card", "email"],
+        "redactInLogs": true
+      }
+    }
+  },
+  "mode": {
+    "default": "ENFORCE"
+  },
+  "tests": [
+    {
+      "name": "Block file deletion",
+      "description": "Should deny file deletion operations",
+      "context": {
+        "agentId": "test-agent",
+        "action": "tool.execute",
+        "tool": "file_delete",
+        "toolParams": {
+          "path": "/important/data.txt"
+        },
+        "context": {
+          "correlation_id": "test-001"
+        }
+      },
+      "expected": {
+        "action": "DENY",
+        "reason_codes": ["TOOL_NOT_ALLOWED"],
+        "risk_score_range": {
+          "min": 70,
+          "max": 100
+        }
+      },
+      "tags": ["security", "tools"]
+    },
+    {
+      "name": "Allow file read",
+      "description": "Should allow file read operations",
+      "context": {
+        "agentId": "test-agent",
+        "action": "tool.execute",
+        "tool": "file_read",
+        "toolParams": {
+          "path": "/data/report.txt"
+        },
+        "context": {
+          "correlation_id": "test-002"
+        }
+      },
+      "expected": {
+        "action": "ALLOW",
+        "reason_codes": ["POLICY_PASSED"],
+        "risk_score_range": {
+          "min": 0,
+          "max": 30
+        }
+      },
+      "tags": ["security", "tools"]
+    },
+    {
+      "name": "Detect PII in content",
+      "description": "Should detect and block PII",
+      "context": {
+        "agentId": "test-agent",
+        "action": "chat.create",
+        "content": "My SSN is 123-45-6789",
+        "context": {
+          "correlation_id": "test-003"
+        }
+      },
+      "expected": {
+        "action": "DENY",
+        "reason_codes": ["PII_DETECTED"],
+        "risk_score_range": {
+          "min": 80,
+          "max": 100
+        }
+      },
+      "tags": ["security", "pii"]
+    },
+    {
+      "name": "Allow clean content",
+      "description": "Should allow content without PII",
+      "context": {
+        "agentId": "test-agent",
+        "action": "chat.create",
+        "content": "What is the weather today?",
+        "context": {
+          "correlation_id": "test-004"
+        }
+      },
+      "expected": {
+        "action": "ALLOW",
+        "reason_codes": ["POLICY_PASSED"],
+        "risk_score_range": {
+          "min": 0,
+          "max": 20
+        }
+      },
+      "tags": ["security", "content"]
+    }
+  ]
+}
