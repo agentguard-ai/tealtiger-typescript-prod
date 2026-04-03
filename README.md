@@ -14,7 +14,7 @@
   [![Tests](https://github.com/agentguard-ai/tealtiger-sdk/actions/workflows/test.yml/badge.svg)](https://github.com/agentguard-ai/tealtiger-sdk/actions/workflows/test.yml)
   [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
   [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
-  [![v1.1.0](https://img.shields.io/badge/version-v1.1.0-teal.svg)](https://www.npmjs.com/package/tealtiger)
+  [![v1.1.1](https://img.shields.io/badge/version-v1.1.1-teal.svg)](https://www.npmjs.com/package/tealtiger)
 </div>
 
 > 📖 **[Read the introduction blog post](https://dev.to/nagasatish_chilakamarti_2/introducing-tealtiger-ai-security-cost-control-made-simple-4lma)** | 📚 **[Documentation](https://docs.tealtiger.ai)**
