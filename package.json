@@ -105,7 +105,7 @@
     "protection"
   ],
   "author": "TealTiger Team",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/agentguard-ai/tealtiger-typescript.git"
@@ -113,7 +113,7 @@
   "bugs": {
     "url": "https://github.com/agentguard-ai/tealtiger-typescript/issues"
   },
-  "homepage": "https://tealtiger.co.in",
+  "homepage": "https://tealtiger.ai",
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.987.0",
     "@azure/openai": "^2.0.0",
