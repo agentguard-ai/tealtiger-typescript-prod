@@ -40,3 +40,33 @@ temp/
 # OS files
 Thumbs.db
 .DS_Store
+
+# ── TealTiger-specific exclusions ────────────────────────────────
+
+# Docker (infrastructure, not SDK)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+DOCKER*.md
+test-docker.sh
+
+# Generated API docs (regenerate with `npx typedoc`)
+docs/api/
+typedoc.json
+
+# Internal planning docs
+RELEASE-NOTES-*.md
+DOCKER-SETUP-COMPLETE.md
+
+# Dev container
+.devcontainer/
+
+# Test artifacts
+test-output.txt
+
+# Backup/scratch code
+src/**/\_backup/
+
+# Empty/unused files
+src/utils/CostCalculator.ts
+src/__tests__/benchmarks.test.ts
