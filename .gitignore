@@ -70,3 +70,15 @@ src/**/\_backup/
 # Empty/unused files
 src/utils/CostCalculator.ts
 src/__tests__/benchmarks.test.ts
+
+# Internal docs and checklists
+GITHUB-SETUP.md
+LAUNCH-CHECKLIST.txt
+QUICK-LAUNCH.md
+README.sdk.md
+RELEASE-CHECKLIST.md
+
+# Old build artifacts
+*.tgz
+package/
+test-install/
