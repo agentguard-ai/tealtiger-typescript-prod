@@ -28,7 +28,7 @@ WORKDIR /build
 COPY package*.json tsconfig.json tsconfig.sidecar.json ./
 
 # Install all dependencies (including dev for build)
-RUN npm ci --ignore-scripts && \
+RUN npm install --ignore-scripts && \
     npm cache clean --force
 
 # Copy source
@@ -53,7 +53,7 @@ RUN addgroup -g 1001 -S tealtiger && \
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production --ignore-scripts && \
+RUN npm install --only=production --ignore-scripts && \
     npm cache clean --force
 
 # Copy built files from builder
