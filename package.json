@@ -123,7 +123,7 @@
     "axios": "^1.6.0",
     "cohere-ai": "^7.20.0",
     "openai": "^6.21.0",
-    "uuid": "^13.0.0"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.2",
