@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-05-04
+
+### Added — Governance Bundle
+- **TealEngineV12** — Parallel module evaluation pipeline (Promise.allSettled) with "most restrictive action wins" merge and fail-closed defaults
+- **TealSecrets** — Secret detection with 500+ patterns across 9 categories (AI providers, cloud, database, infrastructure, payments, SaaS, VCS, generic) with confidence scoring
+- **TealRegistry** — Model/tool allowlisting with provenance verification
+- **TealReliability** — Retry budgets, circuit breakers, and fallback chains
+- **TealMemory** — Memory governance across 5 scopes (SESSION, USER, AGENT, GLOBAL, EPHEMERAL) and 4 classifications (PUBLIC, INTERNAL, CONFIDENTIAL, RESTRICTED)
+- **GovernanceDashboard** — Governance visibility UI with control catalog
+- **BundleExporter** — Evidence export in SARIF v2.1.0, JUnit XML, and JSON formats
+- **TEECValidator** — Typed Evidence & Evidence Contract validation
+- **TEECRegistryLoader** — Governance control catalog loader
+- **ModuleRegistry** — Module registration, lazy initialization, and dependency resolution
+- **Docker Sidecar** — Language-agnostic HTTP governance API (`POST /evaluate`, `/validate`, `/scan`, `GET /health`, `/ready`, `/modules`)
+
+### Added — Infrastructure
+- **Serverless optimizations** — CloudConfigLoader, ColdStartOptimizer, ConfigCache, LazyLoader, ServerlessOptimizer, SingletonFactory
+- **Rollup build** — Tree-shakeable ESM + CJS bundles with bundle size analysis
+- **Dockerfile.sidecar** — Multi-stage Docker build for governance sidecar image
+
+### Fixed
+- Enum types alignment in core engine types
+- TealCircuit decision test assertions
+- TealEngine evaluateWithMode test expectations
+- CLI test runner improvements
+- Test fixture keys replaced with obviously-fake values for GitHub push protection compatibility
+
 ## [1.1.1] - 2026-04-03
 
 ### Fixed
@@ -166,7 +193,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint configuration for code quality
 - Examples for common integration patterns
 
-[Unreleased]: https://github.com/agentguard-ai/tealtiger-typescript-prod/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/agentguard-ai/tealtiger-typescript-prod/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/agentguard-ai/tealtiger-typescript-prod/releases/tag/v1.2.0
 [1.1.1]: https://github.com/agentguard-ai/tealtiger-typescript-prod/releases/tag/v1.1.1
 [1.1.0]: https://github.com/agentguard-ai/tealtiger-typescript-prod/releases/tag/v1.1.0
 [0.2.2]: https://github.com/agentguard-ai/agentguard-sdk/releases/tag/v0.2.2
