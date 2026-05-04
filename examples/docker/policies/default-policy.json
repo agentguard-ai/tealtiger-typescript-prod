@@ -1,0 +1,60 @@
+{
+  "version": "1.2.0",
+  "description": "Default TealTiger governance policy — customize for your use case",
+
+  "security": {
+    "pii_detection": {
+      "enabled": true,
+      "action": "REDACT",
+      "categories": ["email", "phone", "ssn", "credit_card", "api_key"]
+    },
+    "prompt_injection": {
+      "enabled": true,
+      "action": "DENY",
+      "sensitivity": "medium"
+    },
+    "content_moderation": {
+      "enabled": true,
+      "action": "DENY",
+      "threshold": 0.7
+    }
+  },
+
+  "cost": {
+    "max_cost_per_request": 1.00,
+    "max_cost_per_session": 10.00,
+    "max_cost_per_day": 50.00,
+    "alert_threshold": 0.8
+  },
+
+  "reliability": {
+    "max_retries": 3,
+    "retry_budget_per_minute": 10,
+    "circuit_breaker": {
+      "enabled": true,
+      "failure_threshold": 5,
+      "reset_timeout_seconds": 30
+    }
+  },
+
+  "memory": {
+    "default_scope": "session",
+    "max_retention_days": 30,
+    "pii_in_memory": "REDACT",
+    "secrets_in_memory": "DENY_WRITE"
+  },
+
+  "registry": {
+    "allowed_models": [
+      "gpt-4",
+      "gpt-4o",
+      "gpt-3.5-turbo",
+      "claude-3-5-sonnet-20241022",
+      "claude-3-haiku-20240307",
+      "gemini-1.5-pro",
+      "gemini-1.5-flash"
+    ],
+    "allowed_tools": "*",
+    "deny_tools": []
+  }
+}

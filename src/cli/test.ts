@@ -30,7 +30,6 @@
  */
 
 import * as fs from 'fs';
-import * as path from 'path';
 import { TealEngine } from '../core/engine/TealEngine';
 import { PolicyMode } from '../core/engine/types';
 import type { PolicyTestSuite, PolicyTestReport, PolicyTestCase, PolicyTestResult } from '../core/testing/types';
@@ -236,7 +235,7 @@ function runTest(engine: TealEngine, testCase: PolicyTestCase, verbose: boolean)
   
   try {
     // Execute policy evaluation
-    const actual = engine.evaluate(testCase.context);
+    const actual = engine.evaluate(testCase.context) as any;
     const executionTime = Date.now() - startTime;
     
     // Compare with expected
@@ -254,9 +253,8 @@ function runTest(engine: TealEngine, testCase: PolicyTestCase, verbose: boolean)
       expected: testCase.expected,
       failure_reason: failureReason,
       execution_time: executionTime,
-    };
+    } as PolicyTestResult;
   } catch (error) {
-    const executionTime = Date.now() - startTime;
     throw new Error(`Test execution failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
@@ -340,8 +338,8 @@ function runTestSuite(suite: PolicyTestSuite, options: CLIOptions): PolicyTestRe
   
   // Create TealEngine with correct constructor signature
   const engine = new TealEngine(suite.policy, {
-    mode: modeConfig,
-  });
+    mode: modeConfig!,
+  } as any);
   
   // Filter tests by tags
   let tests = suite.tests;
