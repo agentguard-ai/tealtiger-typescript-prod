@@ -46,7 +46,7 @@ describe('TealSecrets — Detection Engine', () => {
   });
 
   test('detects Stripe Secret Key (sk_live_ prefix)', () => {
-    const content = 'STRIPE_SECRET_KEY=sk_live_FAKEKEYFORTESTINGONLY00';
+    const content = 'STRIPE_SECRET_KEY=sk_live_FAKEKEYFORTESTINGONLY00ab';
     const findings = secrets.scan(content);
     const stripeFinding = findings.find((f) => f.type === 'stripe-secret-key');
     expect(stripeFinding).toBeDefined();

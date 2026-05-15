@@ -103,7 +103,7 @@ describe('TealMemory — Write Governance (Secrets)', () => {
     const record: MemoryRecord = {
       scope: 'SESSION',
       classification: 'PUBLIC',
-      value: 'sk_live_FAKEKEYFORTESTINGONLY00',
+      value: 'sk_live_FAKEKEYFORTESTINGONLY00abcdef',
     };
     const decision = await memory.write(record, makeCtx(), policy);
     expect(decision.action).toBe(DecisionAction.STORE_SUMMARY_ONLY);

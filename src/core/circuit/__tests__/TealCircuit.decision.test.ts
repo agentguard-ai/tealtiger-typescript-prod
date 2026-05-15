@@ -27,7 +27,7 @@ describe('TealCircuit - Decision Object', () => {
       expect(decision.correlation_id).toBe(context.correlation_id);
       expect(decision.mode).toBe(PolicyMode.ENFORCE);
       expect(decision.policy_id).toBe('circuit.breaker');
-      expect(decision.policy_version).toBe('1.1.1');
+      expect(decision.policy_version).toBe('1.2.0');
       expect(decision.component_versions).toBeDefined();
       expect(decision.component_versions.circuit).toBeDefined();
       expect(decision.reason).toContain('closed');
