@@ -22,3 +22,10 @@ export * from './bedrock';
 export * from './azure-openai';
 export * from './cohere';
 export * from './mistral';
+
+// v1.3 new providers
+export * from './groq';
+export * from './deepseek';
+export * from './together';
+export * from './hf-tgi';
+export * from './xai';

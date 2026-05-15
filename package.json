@@ -1,6 +1,6 @@
 {
   "name": "tealtiger",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "TealTiger - Powerful protection for AI agents with cost tracking and security guardrails",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -48,6 +48,31 @@
       "import": "./dist/providers/mistral.esm.js",
       "require": "./dist/providers/mistral.js",
       "types": "./dist/providers/mistral.d.ts"
+    },
+    "./providers/groq": {
+      "import": "./dist/providers/groq.esm.js",
+      "require": "./dist/providers/groq.js",
+      "types": "./dist/providers/groq.d.ts"
+    },
+    "./providers/deepseek": {
+      "import": "./dist/providers/deepseek.esm.js",
+      "require": "./dist/providers/deepseek.js",
+      "types": "./dist/providers/deepseek.d.ts"
+    },
+    "./providers/together": {
+      "import": "./dist/providers/together.esm.js",
+      "require": "./dist/providers/together.js",
+      "types": "./dist/providers/together.d.ts"
+    },
+    "./providers/hf-tgi": {
+      "import": "./dist/providers/hf-tgi.esm.js",
+      "require": "./dist/providers/hf-tgi.js",
+      "types": "./dist/providers/hf-tgi.d.ts"
+    },
+    "./providers/xai": {
+      "import": "./dist/providers/xai.esm.js",
+      "require": "./dist/providers/xai.js",
+      "types": "./dist/providers/xai.d.ts"
     },
     "./serverless": {
       "import": "./dist/serverless.esm.js",
