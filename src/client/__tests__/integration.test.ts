@@ -13,6 +13,114 @@ import { TealAudit } from '../../core/audit/TealAudit';
 import { PolicyViolationError } from '../base';
 
 describe('TealOpenAI Integration', () => {
+  describe('cost metadata', () => {
+    it('should calculate GPT-4 Turbo preview cost with turbo pricing', async () => {
+      const client = new TealOpenAI({
+        apiKey: 'test-key',
+        agentId: 'test-agent'
+      });
+
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'test-id',
+          object: 'chat.completion',
+          created: Date.now(),
+          model: 'gpt-4-turbo-preview',
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: 'Hello!' },
+            finish_reason: 'stop'
+          }],
+          usage: {
+            prompt_tokens: 1000,
+            completion_tokens: 500,
+            total_tokens: 1500
+          }
+        })
+      });
+
+      const response = await client.chat.create({
+        model: 'gpt-4-turbo-preview',
+        messages: [{ role: 'user', content: 'Hello' }]
+      });
+
+      expect(response.cost).toBe(0.025);
+      expect(response.metadata?.cost).toBe('0.0250');
+    });
+
+    it('should use the most specific GPT-4 Turbo pricing for versioned model names', async () => {
+      const client = new TealOpenAI({
+        apiKey: 'test-key',
+        agentId: 'test-agent'
+      });
+
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'test-id',
+          object: 'chat.completion',
+          created: Date.now(),
+          model: 'gpt-4-turbo-2024-04-09',
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: 'Hello!' },
+            finish_reason: 'stop'
+          }],
+          usage: {
+            prompt_tokens: 1000,
+            completion_tokens: 1000,
+            total_tokens: 2000
+          }
+        })
+      });
+
+      const response = await client.chat.create({
+        model: 'gpt-4-turbo-2024-04-09',
+        messages: [{ role: 'user', content: 'Hello' }]
+      });
+
+      expect(response.cost).toBe(0.04);
+      expect(response.metadata?.cost).toBe('0.0400');
+    });
+
+    it('should omit cost metadata when cost tracking is disabled', async () => {
+      const client = new TealOpenAI({
+        apiKey: 'test-key',
+        agentId: 'test-agent',
+        enableCostTracking: false
+      });
+
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'test-id',
+          object: 'chat.completion',
+          created: Date.now(),
+          model: 'gpt-4-turbo-preview',
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: 'Hello!' },
+            finish_reason: 'stop'
+          }],
+          usage: {
+            prompt_tokens: 1000,
+            completion_tokens: 500,
+            total_tokens: 1500
+          }
+        })
+      });
+
+      const response = await client.chat.create({
+        model: 'gpt-4-turbo-preview',
+        messages: [{ role: 'user', content: 'Hello' }]
+      });
+
+      expect(response.cost).toBeUndefined();
+      expect(response.metadata?.cost).toBeUndefined();
+    });
+  });
+
   describe('with TealEngine', () => {
     it('should allow requests that match policy', async () => {
       const engine = new TealEngine({

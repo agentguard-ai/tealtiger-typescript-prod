@@ -42,6 +42,35 @@ describe('CostTracker', () => {
       expect(estimate.estimatedCost).toBe(0.0025); // (2000/1000 * 0.0005) + (1000/1000 * 0.0015)
     });
 
+    it('should estimate cost for GPT-4 Turbo preview', () => {
+      const tokens: TokenUsage = {
+        inputTokens: 1000,
+        outputTokens: 500,
+        totalTokens: 1500,
+      };
+
+      const estimate = tracker.estimateCost('gpt-4-turbo-preview', tokens, 'openai');
+
+      expect(estimate.model).toBe('gpt-4-turbo-preview');
+      expect(estimate.provider).toBe('openai');
+      expect(estimate.estimatedCost).toBe(0.025); // (1000/1000 * 0.01) + (500/1000 * 0.03)
+      expect(estimate.breakdown.inputCost).toBe(0.01);
+      expect(estimate.breakdown.outputCost).toBe(0.015);
+    });
+
+    it('should prefer GPT-4 Turbo pricing over GPT-4 pricing for versioned models', () => {
+      const tokens: TokenUsage = {
+        inputTokens: 1000,
+        outputTokens: 1000,
+        totalTokens: 2000,
+      };
+
+      const estimate = tracker.estimateCost('gpt-4-turbo-2024-04-09', tokens, 'openai');
+
+      expect(estimate.model).toBe('gpt-4-turbo');
+      expect(estimate.estimatedCost).toBe(0.04); // GPT-4 Turbo, not GPT-4 at 0.09
+    });
+
     it('should estimate cost for Claude 3 Opus', () => {
       const tokens: TokenUsage = {
         inputTokens: 1000,
