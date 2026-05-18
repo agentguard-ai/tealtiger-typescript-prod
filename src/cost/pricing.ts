@@ -166,25 +166,29 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
  */
 export function getModelPricing(model: string, provider?: ModelProvider): ModelPricing | undefined {
   // Try exact match first
-  if (MODEL_PRICING[model]) {
-    return MODEL_PRICING[model];
+  const exactPricing = MODEL_PRICING[model];
+  if (exactPricing && (!provider || exactPricing.provider === provider)) {
+    return exactPricing;
   }
 
   // Try fuzzy match (case-insensitive, handle variations)
   const normalizedModel = model.toLowerCase().trim();
   
   for (const [key, pricing] of Object.entries(MODEL_PRICING)) {
-    if (key.toLowerCase() === normalizedModel) {
+    if (key.toLowerCase() === normalizedModel && (!provider || pricing.provider === provider)) {
       return pricing;
     }
   }
 
-  // Try partial match for versioned models
-  for (const [key, pricing] of Object.entries(MODEL_PRICING)) {
-    if (normalizedModel.startsWith(key.toLowerCase()) || key.toLowerCase().startsWith(normalizedModel)) {
-      if (!provider || pricing.provider === provider) {
-        return pricing;
-      }
+  // Try longest-prefix match for versioned models (e.g. gpt-4-turbo-2024-04-09).
+  const candidates = Object.entries(MODEL_PRICING)
+    .filter(([, pricing]) => !provider || pricing.provider === provider)
+    .sort(([a], [b]) => b.length - a.length);
+
+  for (const [key, pricing] of candidates) {
+    const normalizedKey = key.toLowerCase();
+    if (normalizedModel.startsWith(normalizedKey) || normalizedKey.startsWith(normalizedModel)) {
+      return pricing;
     }
   }
 
