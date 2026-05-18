@@ -32,14 +32,16 @@ export interface UnicodeNormalizationResult {
  * Regex matching Tag-block characters (U+E0000–U+E007F).
  * These are used in Unicode tag sequences and can be abused to hide content.
  */
-const TAG_BLOCK_REGEX = /[\u{E0000}-\u{E007F}]/gu;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _TAG_BLOCK_REGEX = /[\u{E0000}-\u{E007F}]/gu;
 
 /**
  * Regex matching Variation Selector characters (U+FE00–U+FE0F).
  * These modify the appearance of preceding characters and can be used
  * to create visually identical but semantically different strings.
  */
-const VARIATION_SELECTOR_REGEX = /[\uFE00-\uFE0F]/g;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _VARIATION_SELECTOR_REGEX = /[\uFE00-\uFE0F]/g;
 
 /**
  * Regex matching zero-width characters:
@@ -48,7 +50,8 @@ const VARIATION_SELECTOR_REGEX = /[\uFE00-\uFE0F]/g;
  *   U+200D — Zero-Width Joiner
  *   U+2060 — Word Joiner
  */
-const ZERO_WIDTH_REGEX = /[\u200B\u200C\u200D\u2060]/g;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _ZERO_WIDTH_REGEX = /[\u200B\u200C\u200D\u2060]/g;
 
 /**
  * Combined regex matching all dangerous Unicode characters.
