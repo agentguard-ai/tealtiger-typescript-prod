@@ -16,7 +16,7 @@ const KNOWN_PREFIXES: Record<string, number> = {
   'glpat-': 1.0,                                       // GitLab
   'sk-ant-': 1.0,                                      // Anthropic
   'sk-proj-': 1.0,                                     // OpenAI
-  'sk_live_': 1.0, 'pk_live_': 1.0, 'sk_test_': 1.0,  // Stripe
+  'sk_live_': 1.0, 'pk_live_': 1.0, 'sk_test_': 1.0, 'pk_test_': 1.0, // Stripe
   'hf_': 0.9,                                          // HuggingFace
   'xoxb-': 1.0, 'xoxp-': 1.0,                         // Slack
   'SG.': 1.0,                                          // SendGrid

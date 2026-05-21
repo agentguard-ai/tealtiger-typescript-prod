@@ -55,6 +55,24 @@ describe('TealSecrets — Detection Engine', () => {
     expect(stripeFinding!.category).toBe('payments');
   });
 
+  test.each([
+    ['stripe-secret-key', fixture('sk_live_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'), 'CRITICAL'],
+    ['stripe-publishable-key', fixture('pk_live_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'), 'CRITICAL'],
+    ['stripe-test-secret', fixture('sk_test_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'), 'LOW'],
+    ['stripe-test-publishable-key', fixture('pk_test_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'), 'LOW'],
+  ])('detects %s with configured Stripe severity', (type, key, severity) => {
+    const findings = secrets.scan(`STRIPE_KEY=${key}`);
+    const finding = findings.find((f) => f.type === type);
+    const detector = builtInDetectors.find((d) => d.id === type);
+
+    expect(detector).toBeDefined();
+    expect(detector!.category).toBe('payments');
+    expect(detector!.severity).toBe(severity);
+    expect(finding).toBeDefined();
+    expect(finding!.category).toBe('payments');
+    expect(finding!.severity).toBe(severity);
+  });
+
   test('detects RSA Private Key', () => {
     const content = 'private_key = -----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...';
     const findings = secrets.scan(content);
