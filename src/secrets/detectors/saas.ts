@@ -9,7 +9,7 @@ export const saasDetectors: SecretPattern[] = [
   { id: 'slack-bot-token', regex: /\bxoxb-[0-9]{10,13}-[0-9]{10,13}-[a-zA-Z0-9]{24}\b/, category: 'saas', severity: 'HIGH', description: 'Slack Bot Token' },
   { id: 'slack-user-token', regex: /\bxoxp-[0-9]{10,13}-[0-9]{10,13}-[a-zA-Z0-9]{24,}\b/, category: 'saas', severity: 'HIGH', description: 'Slack User Token' },
   { id: 'slack-app-token', regex: /\bxapp-[0-9]-[A-Z0-9]{10,}-[0-9]{10,}-[a-z0-9]{64}\b/, category: 'saas', severity: 'HIGH', description: 'Slack App Token' },
-  { id: 'slack-webhook', regex: /https:\/\/hooks\.slack\.com\/services\/T[A-Z0-9]{8,}\/B[A-Z0-9]{8,}\/[A-Za-z0-9]{24}/, category: 'saas', severity: 'HIGH', description: 'Slack Webhook URL' },
+  { id: 'slack-webhook', regex: /https:\/\/hooks\.slack\.com\/services\/T[a-zA-Z0-9_]+\/B[a-zA-Z0-9_]+\/[a-zA-Z0-9_]+/, category: 'saas', severity: 'MEDIUM', description: 'Slack Webhook URL' },
   { id: 'slack-config-token', regex: /\bxoxe\.xoxp-1-[A-Za-z0-9]{160,}/, category: 'saas', severity: 'HIGH', description: 'Slack Configuration Token' },
 
   // Twilio (4 patterns)

@@ -127,6 +127,22 @@ describe('TealSecrets — Detection Engine', () => {
     expect(finding!.confidence).toBeLessThanOrEqual(1);
   });
 
+  test('detects Slack webhook URLs with mixed-case and underscore segments', () => {
+    const content = fixture(
+      'SLACK_WEBHOOK_URL=https://hooks.slack.com/services/',
+      'Tabc_DEF123/Bfoo_BAR456/abc_DEF_123_xyz',
+    );
+    const findings = secrets.scan(content);
+    const finding = findings.find((f) => f.type === 'slack-webhook');
+    const detector = builtInDetectors.find((d) => d.id === 'slack-webhook');
+
+    expect(detector).toBeDefined();
+    expect(detector!.category).toBe('saas');
+    expect(detector!.severity).toBe('MEDIUM');
+    expect(finding).toBeDefined();
+    expect(finding!.category).toBe('saas');
+  });
+
   test('does not report common SaaS words as secret tokens', () => {
     const content = [
       'Rotate the Slack bot and user tokens through the admin console.',
