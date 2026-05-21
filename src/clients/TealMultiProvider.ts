@@ -18,9 +18,40 @@ export type ProviderType =
   | 'anthropic' 
   | 'gemini' 
   | 'bedrock' 
+  | 'azure'
   | 'azure-openai' 
   | 'cohere' 
-  | 'mistral';
+  | 'mistral'
+  | 'deepseek'
+  | 'groq'
+  | 'together'
+  | 'hf-tgi'
+  | 'xai';
+
+export const SUPPORTED_PROVIDER_TYPES = [
+  'openai',
+  'anthropic',
+  'gemini',
+  'bedrock',
+  'azure',
+  'cohere',
+  'mistral',
+  'deepseek',
+  'groq',
+  'together',
+  'hf-tgi',
+  'xai',
+] as const;
+
+const SUPPORTED_PROVIDER_ALIASES = ['azure-openai'] as const;
+const SUPPORTED_PROVIDER_NAMES = SUPPORTED_PROVIDER_TYPES.join(', ');
+
+function isSupportedProviderType(type: unknown): type is ProviderType {
+  return typeof type === 'string' && (
+    (SUPPORTED_PROVIDER_TYPES as readonly string[]).includes(type) ||
+    (SUPPORTED_PROVIDER_ALIASES as readonly string[]).includes(type)
+  );
+}
 
 /**
  * Provider client union type
@@ -166,6 +197,12 @@ export class TealMultiProvider {
    * Register a provider
    */
   registerProvider(config: ProviderConfig): void {
+    if (!isSupportedProviderType(config.type)) {
+      throw new Error(
+        `TealTiger: Unknown provider '${String(config.type)}'. Supported: ${SUPPORTED_PROVIDER_NAMES}`
+      );
+    }
+
     const providerConfig: ProviderConfig = {
       ...config,
       priority: config.priority || 0,
@@ -361,8 +398,14 @@ export class TealMultiProvider {
     // Handle different provider types
     switch (provider.type) {
       case 'openai':
+      case 'azure':
       case 'azure-openai':
       case 'mistral':
+      case 'deepseek':
+      case 'groq':
+      case 'together':
+      case 'hf-tgi':
+      case 'xai':
         if (method === 'chat') {
           return await client.chat.completions.create(params);
         }

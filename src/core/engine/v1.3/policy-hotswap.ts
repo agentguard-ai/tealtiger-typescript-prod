@@ -203,6 +203,8 @@ export class PolicyHotSwapManager {
 
     if (!Array.isArray(bundle.policies)) {
       errors.push('Missing or invalid policies (must be array)');
+    } else if (bundle.policies.length === 0) {
+      errors.push('TealTiger: Policy bundle is empty. At least one policy rule is required.');
     }
 
     if (!bundle.fail_behavior || !['fail_closed', 'fail_open'].includes(bundle.fail_behavior)) {

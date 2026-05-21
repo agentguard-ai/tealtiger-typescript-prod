@@ -467,18 +467,14 @@ describe('TealMultiProvider', () => {
       expect(response.response.content[0].text).toBe('Anthropic response');
     });
 
-    it('should throw error for unsupported provider type', async () => {
-      multiProvider.registerProvider({
+    it('should throw actionable error for unsupported provider type', () => {
+      expect(() => multiProvider.registerProvider({
         type: 'unknown' as any,
         name: 'unknown-test',
         client: {} as any
-      });
-
-      await expect(
-        multiProvider.execute('chat', {
-          messages: [{ role: 'user', content: 'test' }]
-        })
-      ).rejects.toThrow('Unsupported provider type');
+      })).toThrow(
+        "TealTiger: Unknown provider 'unknown'. Supported: openai, anthropic, gemini, bedrock, azure, cohere, mistral, deepseek, groq, together, hf-tgi, xai"
+      );
     });
 
     it('should throw error for unsupported method', async () => {
