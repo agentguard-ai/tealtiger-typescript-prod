@@ -1,6 +1,6 @@
 /**
  * SaaS provider secret detectors (~50 patterns)
- * Salesforce, Zendesk, Jira, Slack, Twilio, SendGrid, etc.
+ * Salesforce, Zendesk, Jira, Slack, Twilio, SendGrid, Mailgun, etc.
  */
 import { SecretPattern } from '../types';
 
@@ -21,6 +21,9 @@ export const saasDetectors: SecretPattern[] = [
   // SendGrid (2 patterns)
   { id: 'sendgrid-api-key', regex: /\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}\b/, category: 'saas', severity: 'HIGH', description: 'SendGrid API Key' },
   { id: 'sendgrid-env-key', regex: /(?:SENDGRID_API_KEY|sendgrid_key)\s*[:=]\s*["']?(SG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43})/, category: 'saas', severity: 'HIGH', description: 'SendGrid Key in Env' },
+
+  // Mailgun (1 pattern)
+  { id: 'mailgun-api-key', regex: /(?:MAILGUN_API_KEY|mailgun_api_key|mailgun_key)\s*[:=]\s*["']?(key-[a-f0-9]{32})\b/, category: 'saas', severity: 'HIGH', description: 'Mailgun API Key' },
 
   // Salesforce (4 patterns)
   { id: 'salesforce-oauth-token', regex: /(?:SALESFORCE_ACCESS_TOKEN|sf_access_token)\s*[:=]\s*["']?([A-Za-z0-9!.]{80,})/, category: 'saas', severity: 'HIGH', description: 'Salesforce OAuth Token' },
