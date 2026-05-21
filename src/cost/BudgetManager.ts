@@ -47,6 +47,12 @@ export class BudgetManager {
    * @returns Created budget
    */
   createBudget(config: Omit<BudgetConfig, 'id' | 'createdAt' | 'updatedAt'>): BudgetConfig {
+    if (!Number.isFinite(config.limit) || config.limit <= 0) {
+      throw new Error(
+        `TealTiger: Budget limit must be > 0. Got ${config.limit} for 'maxCostPerRequest'.`
+      );
+    }
+
     const budget: BudgetConfig = {
       ...config,
       id: generateId(),

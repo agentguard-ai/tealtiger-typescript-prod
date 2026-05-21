@@ -23,6 +23,7 @@ import {
   ModeConfig,
   ComponentVersions,
   InvalidConfigurationError,
+  formatInvalidPolicyModeMessage,
 } from './types';
 import { PolicyEvaluator } from './PolicyEvaluator';
 import { PolicyCache } from './PolicyCache';
@@ -389,7 +390,7 @@ export class TealEngine {
     }
 
     // Fallback (should never reach here due to mode validation)
-    throw new InvalidConfigurationError(`Invalid policy mode: ${effectiveMode}`);
+    throw new InvalidConfigurationError(formatInvalidPolicyModeMessage(effectiveMode));
   }
 
   /**

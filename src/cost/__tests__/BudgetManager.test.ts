@@ -54,6 +54,19 @@ describe('BudgetManager', () => {
       expect(budget.updatedAt).toBeDefined();
     });
 
+    it('should reject zero budget limit with actionable message', () => {
+      expect(() => manager.createBudget({
+        name: 'Zero Budget',
+        limit: 0,
+        period: 'daily',
+        alertThresholds: [100],
+        action: 'block',
+        enabled: true,
+      })).toThrow(
+        "TealTiger: Budget limit must be > 0. Got 0 for 'maxCostPerRequest'."
+      );
+    });
+
     it('should create budget with scope', () => {
       const budget = manager.createBudget({
         name: 'Agent Budget',

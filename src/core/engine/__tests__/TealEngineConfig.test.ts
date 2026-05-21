@@ -102,6 +102,12 @@ describe('TealEngineConfig', () => {
       expect(() => {
         new TealEngine(config);
       }).toThrow(InvalidConfigurationError);
+
+      expect(() => {
+        new TealEngine(config);
+      }).toThrow(
+        "TealTiger: Invalid policy mode 'INVALID_MODE'. Valid modes: ENFORCE, MONITOR, REPORT_ONLY"
+      );
     });
     
     it('should validate mode configuration at initialization', () => {
@@ -591,6 +597,12 @@ describe('TealEngineConfig', () => {
       expect(() => {
         validateTealEngineConfig(config);
       }).toThrow(InvalidConfigurationError);
+
+      expect(() => {
+        validateTealEngineConfig(config);
+      }).toThrow(
+        "TealTiger: Invalid policy mode 'INVALID_MODE'. Valid modes: ENFORCE, MONITOR, REPORT_ONLY"
+      );
     });
     
     it('should validate without throwing for config without mode', () => {

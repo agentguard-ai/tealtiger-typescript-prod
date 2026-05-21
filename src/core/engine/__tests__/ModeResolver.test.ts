@@ -329,6 +329,12 @@ describe('ModeResolver', () => {
       expect(() => {
         ModeResolver.validateModeConfiguration(config);
       }).toThrow(InvalidConfigurationError);
+
+      expect(() => {
+        ModeResolver.validateModeConfiguration(config);
+      }).toThrow(
+        "TealTiger: Invalid policy mode 'INVALID_MODE'. Valid modes: ENFORCE, MONITOR, REPORT_ONLY"
+      );
     });
     
     it('should throw InvalidConfigurationError for invalid policy-specific mode', () => {
@@ -345,7 +351,9 @@ describe('ModeResolver', () => {
       
       expect(() => {
         ModeResolver.validateModeConfiguration(config);
-      }).toThrow(/Invalid.*mode for policy/);
+      }).toThrow(
+        "TealTiger: Invalid policy mode 'INVALID_MODE'. Valid modes: ENFORCE, MONITOR, REPORT_ONLY"
+      );
     });
     
     it('should throw InvalidConfigurationError for invalid environment-specific mode', () => {
@@ -362,7 +370,9 @@ describe('ModeResolver', () => {
       
       expect(() => {
         ModeResolver.validateModeConfiguration(config);
-      }).toThrow(/Invalid.*mode for environment/);
+      }).toThrow(
+        "TealTiger: Invalid policy mode 'INVALID_MODE'. Valid modes: ENFORCE, MONITOR, REPORT_ONLY"
+      );
     });
     
     it('should throw InvalidConfigurationError for missing default mode', () => {
