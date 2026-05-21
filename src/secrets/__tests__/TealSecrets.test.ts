@@ -19,6 +19,8 @@ const makeCtx = (): ModuleContext => ({
   timestamp: Date.now(),
 });
 
+const fixture = (...parts: string[]): string => parts.join('');
+
 // ── Detection of known patterns ──────────────────────────────────
 
 describe('TealSecrets — Detection Engine', () => {
@@ -67,6 +69,86 @@ describe('TealSecrets — Detection Engine', () => {
     const pgFinding = findings.find((f) => f.type === 'postgres-connection-string');
     expect(pgFinding).toBeDefined();
     expect(pgFinding!.category).toBe('database');
+  });
+
+  test.each([
+    [
+      'slack-bot-token',
+      fixture('SLACK_BOT_TOKEN=xox', 'b-123456789012-123456789012-', 'AbCdEfGhIjKlMnOpQrStUvWx'),
+    ],
+    [
+      'slack-user-token',
+      fixture('SLACK_USER_TOKEN=xox', 'p-123456789012-123456789012-', 'AbCdEfGhIjKlMnOpQrStUvWxYz'),
+    ],
+    [
+      'slack-webhook',
+      fixture('SLACK_WEBHOOK_URL=https://hooks.slack.com/services/', 'T12345678/B12345678/', 'abcdefghijklmnopqrstuvwx'),
+    ],
+    [
+      'twilio-account-sid',
+      fixture('TWILIO_ACCOUNT_SID=A', 'C0123456789abcdef0123456789abcdef'),
+    ],
+    [
+      'twilio-auth-token',
+      fixture('TWILIO_AUTH_TOKEN=0123456789abcdef', '0123456789abcdef'),
+    ],
+    [
+      'sendgrid-api-key',
+      fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstuv.', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq'),
+    ],
+    [
+      'mailgun-api-key',
+      fixture('MAILGUN_API_KEY=key-', '0123456789abcdef0123456789abcdef'),
+    ],
+    [
+      'datadog-api-key',
+      fixture('DATADOG_API_KEY=0123456789abcdef', '0123456789abcdef'),
+    ],
+    [
+      'pagerduty-api-key',
+      fixture('PAGERDUTY_API_KEY=pdAbCdEf', 'GhIjKlMnOpQr'),
+    ],
+    [
+      'sentry-dsn',
+      fixture('SENTRY_DSN=https://0123456789abcdef', '0123456789abcdef@o123456.ingest.sentry.io/1234567'),
+    ],
+  ])('detects %s with SaaS category and confidence score', (type, content) => {
+    const findings = secrets.scan(content);
+    const finding = findings.find((f) => f.type === type);
+    const detector = builtInDetectors.find((d) => d.id === type);
+
+    expect(detector).toBeDefined();
+    expect(detector!.regex).toBeInstanceOf(RegExp);
+    expect(detector!.description.length).toBeGreaterThan(0);
+    expect(detector!.category).toBe('saas');
+    expect(finding).toBeDefined();
+    expect(finding!.category).toBe('saas');
+    expect(finding!.confidence).toBeGreaterThanOrEqual(0);
+    expect(finding!.confidence).toBeLessThanOrEqual(1);
+  });
+
+  test('does not report common SaaS words as secret tokens', () => {
+    const content = [
+      'Rotate the Slack bot and user tokens through the admin console.',
+      'Document Twilio account setup, SendGrid email delivery, and Mailgun routing.',
+      'Review Datadog dashboards, PagerDuty schedules, and the Sentry project DSN docs.',
+    ].join(' ');
+
+    const findings = secrets.scan(content);
+    const issue48Types = new Set([
+      'slack-bot-token',
+      'slack-user-token',
+      'slack-webhook',
+      'twilio-account-sid',
+      'twilio-auth-token',
+      'sendgrid-api-key',
+      'mailgun-api-key',
+      'datadog-api-key',
+      'pagerduty-api-key',
+      'sentry-dsn',
+    ]);
+
+    expect(findings.filter((f) => issue48Types.has(f.type))).toHaveLength(0);
   });
 
   test('returns empty findings for clean content', () => {
