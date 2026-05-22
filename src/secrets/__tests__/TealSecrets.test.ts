@@ -145,6 +145,17 @@ describe('TealSecrets — Detection Engine', () => {
     expect(finding!.confidence).toBeLessThanOrEqual(1);
   });
 
+  test('does not detect similar-looking SendGrid strings', () => {
+    const content = [
+      fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstu.', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq'),
+      fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstuv_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq'),
+      fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstuv.', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnop'),
+    ].join('\n');
+
+    const findings = secrets.scan(content);
+    expect(findings.find((f) => f.type === 'sendgrid-api-key')).toBeUndefined();
+  });
+
   test('does not report common SaaS words as secret tokens', () => {
     const content = [
       'Rotate the Slack bot and user tokens through the admin console.',
