@@ -36,6 +36,8 @@ export interface RequestContext {
 export interface TealClientConfig {
   apiKey: string;
   agentId?: string;
+  enableGuardrails?: boolean;
+  customGuardrails?: CustomGuardrail[];
   
   // Component instances (pre-configured)
   engine?: TealEngine;
@@ -53,7 +55,7 @@ export interface TealClientConfig {
 }
 
 // Import config types
-import type { TealGuardConfig } from '../core/guard/TealGuard';
+import type { TealGuardConfig, CustomGuardrail } from '../core/guard/TealGuard';
 import type { TealMonitorConfig } from '../core/monitor/TealMonitor';
 import type { TealCircuitConfig } from '../core/circuit/TealCircuit';
 import type { TealAuditConfig } from '../core/audit/TealAudit';
@@ -126,10 +128,20 @@ export class TealBaseClient {
     }
 
     // TealGuard
-    if (this.config.guard) {
-      this.guard = this.config.guard;
-    } else if (this.config.guardConfig) {
-      this.guard = new TealGuard(this.config.guardConfig);
+    if (this.config.enableGuardrails !== false) {
+      if (this.config.guard) {
+        this.guard = this.config.guard;
+        this.config.customGuardrails?.forEach(guardrail => this.guard!.addCustomGuardrail(guardrail));
+      } else if (this.config.guardConfig || this.config.customGuardrails?.length) {
+        const guardConfig: TealGuardConfig = { ...this.config.guardConfig };
+        if (this.config.customGuardrails?.length) {
+          guardConfig.customGuardrails = [
+            ...(guardConfig.customGuardrails ?? []),
+            ...this.config.customGuardrails
+          ];
+        }
+        this.guard = new TealGuard(guardConfig);
+      }
     }
 
     // TealMonitor

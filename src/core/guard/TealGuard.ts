@@ -22,7 +22,8 @@ import {
   GuardrailEngineOptions,
   GuardrailEngineResult,
   Guardrail,
-  GuardrailResult
+  GuardrailResult,
+  GuardrailResultData
 } from '../../guardrails';
 
 /**
@@ -39,6 +40,8 @@ export interface TealGuardConfig {
   policyDriven?: boolean;
   /** Custom guardrail rules */
   customRules?: CustomGuardrailRule[];
+  /** Function-based custom guardrails */
+  customGuardrails?: CustomGuardrail[];
   /** Enable result caching */
   enableCache?: boolean;
   /** Cache TTL in milliseconds (default: 60000 = 1 minute) */
@@ -55,6 +58,24 @@ export interface CustomGuardrailRule {
   description?: string;
   enabled?: boolean;
   evaluate: (input: any, context?: Record<string, any>) => Promise<GuardrailResult> | GuardrailResult;
+}
+
+export interface CustomGuardrailCheckResult {
+  passed: boolean;
+  reason?: string | undefined;
+  action?: 'allow' | 'block' | 'redact' | 'mask' | 'transform' | undefined;
+  metadata?: Record<string, any> | undefined;
+  riskScore?: number | undefined;
+}
+
+export interface CustomGuardrail {
+  name: string;
+  description?: string;
+  enabled?: boolean;
+  check: (
+    input: any,
+    context?: Record<string, any>
+  ) => Promise<CustomGuardrailCheckResult> | CustomGuardrailCheckResult;
 }
 
 /**
@@ -138,6 +159,10 @@ export class TealGuard {
     // Register custom rules
     if (config.customRules) {
       config.customRules.forEach(rule => this.addCustomRule(rule));
+    }
+
+    if (config.customGuardrails) {
+      config.customGuardrails.forEach(guardrail => this.addCustomGuardrail(guardrail));
     }
   }
 
@@ -258,6 +283,41 @@ export class TealGuard {
     const guardrail = new CustomGuardrailWrapper(rule);
     this.customRules.set(rule.name, rule);
     this.guardrailEngine.registerGuardrail(guardrail);
+  }
+
+  /**
+   * Add a function-based custom guardrail.
+   */
+  addCustomGuardrail(guardrail: CustomGuardrail): void {
+    const customRule: CustomGuardrailRule = {
+      name: guardrail.name,
+      evaluate: async (input: any, context?: Record<string, any>) => {
+        const result = await Promise.resolve(guardrail.check(input, context));
+
+        const resultData: GuardrailResultData = {
+          passed: result.passed,
+          action: result.action ?? (result.passed ? 'allow' : 'block'),
+          reason: result.reason ?? (result.passed ? 'Custom guardrail passed' : `Custom guardrail failed: ${guardrail.name}`),
+          riskScore: result.riskScore ?? (result.passed ? 0 : 50)
+        };
+
+        if (result.metadata !== undefined) {
+          resultData.metadata = result.metadata;
+        }
+
+        return new GuardrailResult(resultData);
+      }
+    };
+
+    if (guardrail.description !== undefined) {
+      customRule.description = guardrail.description;
+    }
+
+    if (guardrail.enabled !== undefined) {
+      customRule.enabled = guardrail.enabled;
+    }
+
+    this.addCustomRule(customRule);
   }
 
   /**
