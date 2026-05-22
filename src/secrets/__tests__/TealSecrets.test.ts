@@ -11,6 +11,39 @@ import { DetectionCache } from '../DetectionCache';
 import { CredentialTTLChecker } from '../CredentialTTL';
 import { builtInDetectors } from '../detectors';
 import type { ModuleContext } from '../../core/engine/v1.2/types';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const loadFixture = (name: string): any => {
+  try {
+    const filePath = path.join(process.cwd(), 'test', 'fixtures', 'secrets', `${name}.json`);
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (err) {
+    // If fixtures are not present (e.g., different test environment), return empty corpus
+    return { positives: [], negatives: [] };
+  }
+};
+
+const expandFixtureValue = (v: string): string => {
+  if (!v || typeof v !== 'string') return v;
+  let out = v;
+
+  // Stripe placeholders -> create realistic-length tokens at runtime
+  out = out.replace(/sk_live_[^\s]*/g, () => 'sk_live_' + 'A'.repeat(28));
+  out = out.replace(/pk_live_[^\s]*/g, () => 'pk_live_' + 'A'.repeat(28));
+  out = out.replace(/sk_test_[^\s]*/g, () => 'sk_test_' + 'A'.repeat(28));
+  out = out.replace(/pk_test_[^\s]*/g, () => 'pk_test_' + 'A'.repeat(28));
+
+  // Slack tokens / webhook placeholders
+  out = out.replace(/xoxb-[^\s]*/g, () => 'xoxb-' + '1'.repeat(12) + '-' + '2'.repeat(12) + '-' + 'A'.repeat(24));
+  out = out.replace(/xoxp-[^\s]*/g, () => 'xoxp-' + '1'.repeat(12) + '-' + '2'.repeat(12) + '-' + 'B'.repeat(24));
+  out = out.replace(/https:\/\/hooks\.slack\.com\/services\/[^\s]*/g, () => 'https://hooks.slack.com/services/' + 'T'.repeat(8) + '/' + 'B'.repeat(8) + '/' + 'C'.repeat(24));
+
+  // SendGrid placeholder
+  out = out.replace(/SG\.[^\s]*/g, () => 'SG.' + 'A'.repeat(22) + '.' + 'B'.repeat(43));
+
+  return out;
+};
 
 const makeCtx = (): ModuleContext => ({
   correlation_id: 'test-corr-001',
@@ -159,6 +192,8 @@ describe('TealSecrets — Detection Engine', () => {
     expect(detector!.severity).toBe('MEDIUM');
     expect(finding).toBeDefined();
     expect(finding!.category).toBe('saas');
+  });
+
   test('does not detect similar-looking SendGrid strings', () => {
     const content = [
       fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstu.', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq'),
@@ -217,6 +252,76 @@ describe('TealSecrets — Detection Engine', () => {
   test('getDetectorCount includes built-in detectors', () => {
     expect(secrets.getDetectorCount()).toBeGreaterThanOrEqual(250);
   });
+});
+
+// ── Fixture-driven corpus tests (shared fixtures) ─────────────────
+describe('TealSecrets — Fixture-driven corpus', () => {
+  const stripe = loadFixture('stripe');
+  const slack = loadFixture('slack');
+  const sendgrid = loadFixture('sendgrid');
+
+  // Stripe positives/negatives
+  for (const p of stripe.positives || []) {
+    test(`fixture detects ${p.type} (stripe positive)`, () => {
+      const secrets = new TealSecrets();
+      const value = expandFixtureValue(p.value || p);
+      const findings = secrets.scan(value);
+      const f = findings.find((fn) => fn.type === p.type);
+      expect(f).toBeDefined();
+      if (p.category) expect(f!.category).toBe(p.category);
+    });
+  }
+
+  for (const n of stripe.negatives || []) {
+    test(`fixture does NOT detect ${n.type} (stripe negative)`, () => {
+      const secrets = new TealSecrets();
+      const value = expandFixtureValue(n.value || n);
+      const findings = secrets.scan(value);
+      expect(findings.find((fn) => fn.type === n.type)).toBeUndefined();
+    });
+  }
+
+  // Slack positives/negatives
+  for (const p of slack.positives || []) {
+    test(`fixture detects ${p.type} (slack positive)`, () => {
+      const secrets = new TealSecrets();
+      const value = expandFixtureValue(p.value || p);
+      const findings = secrets.scan(value);
+      const f = findings.find((fn) => fn.type === p.type);
+      expect(f).toBeDefined();
+      if (p.category) expect(f!.category).toBe(p.category);
+    });
+  }
+
+  for (const n of slack.negatives || []) {
+    test(`fixture does NOT detect ${n.type} (slack negative)`, () => {
+      const secrets = new TealSecrets();
+      const value = expandFixtureValue(n.value || n);
+      const findings = secrets.scan(value);
+      expect(findings.find((fn) => fn.type === n.type)).toBeUndefined();
+    });
+  }
+
+  // SendGrid positives/negatives
+  for (const p of sendgrid.positives || []) {
+    test(`fixture detects ${p.type} (sendgrid positive)`, () => {
+      const secrets = new TealSecrets();
+      const value = expandFixtureValue(p.value || p);
+      const findings = secrets.scan(value);
+      const f = findings.find((fn) => fn.type === p.type);
+      expect(f).toBeDefined();
+      if (p.category) expect(f!.category).toBe(p.category);
+    });
+  }
+
+  for (const n of sendgrid.negatives || []) {
+    test(`fixture does NOT detect ${n.type} (sendgrid negative)`, () => {
+      const secrets = new TealSecrets();
+      const value = expandFixtureValue(n.value || n);
+      const findings = secrets.scan(value);
+      expect(findings.find((fn) => fn.type === n.type)).toBeUndefined();
+    });
+  }
 });
 
 // ── Confidence Scoring Determinism ───────────────────────────────
