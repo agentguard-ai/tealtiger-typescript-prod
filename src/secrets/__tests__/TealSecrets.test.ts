@@ -275,7 +275,7 @@ describe('TealSecrets — Fixture-driven corpus', () => {
   for (const n of stripe.negatives || []) {
     test(`fixture does NOT detect ${n.type} (stripe negative)`, () => {
       const secrets = new TealSecrets();
-      const value = expandFixtureValue(n.value || n);
+      const value = n.value || n;
       const findings = secrets.scan(value);
       expect(findings.find((fn) => fn.type === n.type)).toBeUndefined();
     });
@@ -296,7 +296,7 @@ describe('TealSecrets — Fixture-driven corpus', () => {
   for (const n of slack.negatives || []) {
     test(`fixture does NOT detect ${n.type} (slack negative)`, () => {
       const secrets = new TealSecrets();
-      const value = expandFixtureValue(n.value || n);
+      const value = n.value || n;
       const findings = secrets.scan(value);
       expect(findings.find((fn) => fn.type === n.type)).toBeUndefined();
     });
@@ -317,7 +317,7 @@ describe('TealSecrets — Fixture-driven corpus', () => {
   for (const n of sendgrid.negatives || []) {
     test(`fixture does NOT detect ${n.type} (sendgrid negative)`, () => {
       const secrets = new TealSecrets();
-      const value = expandFixtureValue(n.value || n);
+      const value = n.value || n;
       const findings = secrets.scan(value);
       expect(findings.find((fn) => fn.type === n.type)).toBeUndefined();
     });
