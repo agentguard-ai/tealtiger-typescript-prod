@@ -9,6 +9,7 @@
 
 import { createHash } from 'crypto';
 import { SafeContent } from './types';
+import { getDefaultLogger } from '../../utils/logger';
 
 /**
  * Redaction level enumeration
@@ -491,7 +492,7 @@ export function redactContentWithPII(
     return result;
   } catch (error) {
     // Requirement 13.3: Fall back to FULL redaction if PII detection fails
-    console.error('PII detection failed, falling back to FULL redaction:', error);
+    getDefaultLogger().error('PII detection failed, falling back to FULL redaction:', error);
     return {
       redacted: true,
       metadata: {

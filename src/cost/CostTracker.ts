@@ -14,6 +14,7 @@ import {
 } from './types';
 import { getModelPricing } from './pricing';
 import { generateId } from './utils';
+import { createLogger, getDefaultLogger, Logger } from '../utils/logger';
 
 /**
  * Default configuration for cost tracker
@@ -31,10 +32,15 @@ const DEFAULT_CONFIG: CostTrackerConfig = {
 export class CostTracker {
   private config: CostTrackerConfig;
   private customPricing: Map<string, ModelPricing>;
+  private logger: Logger;
 
   constructor(config: Partial<CostTrackerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.customPricing = new Map();
+    this.logger = createLogger({
+      sink: this.config.logger ?? getDefaultLogger(),
+      debugEnabled: false,
+    });
 
     // Load custom pricing if provided
     if (config.customPricing) {
@@ -67,7 +73,7 @@ export class CostTracker {
     const pricing = this.customPricing.get(model) || getModelPricing(model, provider);
 
     if (!pricing) {
-      console.warn(`[CostTracker] No pricing found for model: ${model}`);
+      this.logger.warn(`[CostTracker] No pricing found for model: ${model}`);
       return this.createZeroCostEstimate(model, provider || 'custom', estimatedTokens);
     }
 
@@ -124,7 +130,7 @@ export class CostTracker {
     const pricing = this.customPricing.get(model) || getModelPricing(model, provider);
 
     if (!pricing) {
-      console.warn(`[CostTracker] No pricing found for model: ${model}`);
+      this.logger.warn(`[CostTracker] No pricing found for model: ${model}`);
       return this.createZeroCostRecord(requestId, agentId, model, provider || 'custom', actualTokens);
     }
 

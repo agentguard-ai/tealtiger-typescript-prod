@@ -16,6 +16,7 @@ import {
   TealTigerErrorCode
 } from '../types';
 import { TealTigerConfigError, TealTigerNetworkError, TealTigerServerError } from '../utils/errors';
+import { createLogger, getDefaultLogger, Logger } from '../utils/logger';
 
 /**
  * HTTP client for communicating with the Security Sidecar Agent
@@ -23,9 +24,14 @@ import { TealTigerConfigError, TealTigerNetworkError, TealTigerServerError } fro
 export class SSAClient {
   private readonly httpClient: AxiosInstance;
   private readonly config: TealTigerConfig;
+  private readonly logger: Logger;
 
   constructor(config: TealTigerConfig) {
     this.config = config;
+    this.logger = createLogger({
+      sink: config.logger ?? getDefaultLogger(),
+      debugEnabled: true
+    });
     
     // Create axios instance with default configuration
     this.httpClient = axios.create({
@@ -43,15 +49,15 @@ export class SSAClient {
     if (config.debug) {
       this.httpClient.interceptors.request.use(
         (request) => {
-          console.log(`[TealTiger SDK] Request: ${request.method?.toUpperCase()} ${request.url}`);
-          console.log(`[TealTiger SDK] Headers:`, request.headers);
+          this.logger.debug(`[TealTiger SDK] Request: ${request.method?.toUpperCase()} ${request.url}`);
+          this.logger.debug('[TealTiger SDK] Headers:', request.headers);
           if (request.data) {
-            console.log(`[TealTiger SDK] Body:`, request.data);
+            this.logger.debug('[TealTiger SDK] Body:', request.data);
           }
           return request;
         },
         (error) => {
-          console.error('[TealTiger SDK] Request Error:', error);
+          this.logger.error('[TealTiger SDK] Request Error:', error);
           return Promise.reject(error);
         }
       );
@@ -61,14 +67,14 @@ export class SSAClient {
     this.httpClient.interceptors.response.use(
       (response) => {
         if (this.config.debug) {
-          console.log(`[TealTiger SDK] Response: ${response.status} ${response.statusText}`);
-          console.log(`[TealTiger SDK] Data:`, response.data);
+          this.logger.debug(`[TealTiger SDK] Response: ${response.status} ${response.statusText}`);
+          this.logger.debug('[TealTiger SDK] Data:', response.data);
         }
         return response;
       },
       (error: AxiosError) => {
         if (this.config.debug) {
-          console.error('[TealTiger SDK] Response Error:', error.message);
+          this.logger.error('[TealTiger SDK] Response Error:', error.message);
         }
         return Promise.reject(this.handleHttpError(error));
       }

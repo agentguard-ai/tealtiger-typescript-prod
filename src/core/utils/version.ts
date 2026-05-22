@@ -9,6 +9,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { getDefaultLogger } from '../../utils/logger';
 
 /**
  * Component version information
@@ -101,7 +102,7 @@ export function getPackageVersion(): string {
     }
   } catch (error) {
     // If reading fails, fall back to hardcoded version
-    console.warn('Failed to read package.json version, using fallback:', error);
+    getDefaultLogger().warn('Failed to read package.json version, using fallback:', error);
   }
 
   // Fallback version if package.json cannot be read

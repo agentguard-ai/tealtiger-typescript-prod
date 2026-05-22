@@ -184,6 +184,17 @@ export {
   sanitizeConfig
 } from './utils/validation';
 
+export {
+  createLogger,
+  getDefaultLogger,
+  redactLogValue,
+  setDefaultLogger
+} from './utils/logger';
+
+export type {
+  Logger
+} from './utils/logger';
+
 // Configuration
 export { Configuration, DEFAULT_CONFIG } from './config/Configuration';
 

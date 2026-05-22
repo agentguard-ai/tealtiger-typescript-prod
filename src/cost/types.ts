@@ -4,6 +4,8 @@
  * Type definitions for cost monitoring and budget enforcement
  */
 
+import type { Logger } from '../utils/logger';
+
 /**
  * Supported AI model providers
  */
@@ -221,4 +223,7 @@ export interface CostTrackerConfig {
   enableBudgets: boolean;
   /** Whether to send alerts */
   enableAlerts: boolean;
+
+  /** Optional logger used for diagnostics */
+  logger?: Logger;
 }

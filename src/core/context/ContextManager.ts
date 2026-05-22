@@ -16,6 +16,7 @@ import {
   isValidCorrelationId,
   validateExecutionContext
 } from './ExecutionContext';
+import { getDefaultLogger } from '../../utils/logger';
 
 /**
  * Generates a cryptographically random UUID v4
@@ -45,7 +46,7 @@ export function generateUUIDv4(): string {
   }
   
   // Last resort: Math.random() (NOT cryptographically secure, should not be used in production)
-  console.warn('TealTiger: Using Math.random() for UUID generation. This is NOT cryptographically secure. Please upgrade to Node.js 16.7.0+ or use a modern browser.');
+  getDefaultLogger().warn('TealTiger: Using Math.random() for UUID generation. This is NOT cryptographically secure. Please upgrade to Node.js 16.7.0+ or use a modern browser.');
   
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = Math.random() * 16 | 0;

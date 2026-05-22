@@ -10,6 +10,7 @@
  */
 
 import { Guardrail, GuardrailConfig, GuardrailResult } from './base';
+import { getDefaultLogger } from '../utils/logger';
 
 interface ContentViolation {
   category: string;
@@ -140,6 +141,8 @@ export class ContentModerationGuardrail extends Guardrail {
   }
 
   private async moderateWithOpenAI(text: string): Promise<ContentViolation[]> {
+    const logger = this.config.logger ?? getDefaultLogger();
+
     try {
       const response = await fetch('https://api.openai.com/v1/moderations', {
         method: 'POST',
@@ -151,7 +154,7 @@ export class ContentModerationGuardrail extends Guardrail {
       });
 
       if (!response.ok) {
-        console.error('[ContentModeration] OpenAI API error, falling back to patterns');
+        logger.warn('[ContentModeration] OpenAI API error, falling back to patterns');
         return this.moderateWithPatterns(text);
       }
 
@@ -177,7 +180,7 @@ export class ContentModerationGuardrail extends Guardrail {
 
       return violations;
     } catch (error) {
-      console.error('[ContentModeration] Error calling OpenAI API:', error);
+      logger.error('[ContentModeration] Error calling OpenAI API:', error);
       return this.moderateWithPatterns(text);
     }
   }

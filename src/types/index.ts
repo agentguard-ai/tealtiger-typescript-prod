@@ -4,6 +4,8 @@
  * This file contains all TypeScript interfaces and types for the SDK
  */
 
+import type { Logger } from '../utils/logger';
+
 // ============================================================================
 // Core SDK Types
 // ============================================================================
@@ -29,6 +31,9 @@ export interface TealTigerConfig {
   
   /** Enable debug logging (default: false) */
   debug?: boolean | undefined;
+
+  /** Optional logger used for SDK diagnostics */
+  logger?: Logger | undefined;
   
   /** Custom headers to include with requests */
   headers?: Record<string, string> | undefined;
