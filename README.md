@@ -47,73 +47,47 @@ npm install tealtiger
 ```
 
 ```typescript
-import { TealOpenAI, GuardrailEngine, PIIDetectionGuardrail, PromptInjectionGuardrail } from 'tealtiger';
+import { TealOpenAI } from 'tealtiger';
 
-// Set up guardrails
-const engine = new GuardrailEngine();
-engine.registerGuardrail(new PIIDetectionGuardrail());
-engine.registerGuardrail(new PromptInjectionGuardrail());
-
-// Create guarded client — drop-in replacement for OpenAI
+// Create a governed OpenAI client using the canonical integrated client API.
 const client = new TealOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   agentId: 'my-agent',
-  guardrailEngine: engine
+  customGuardrails: [
+    {
+      name: 'block-secrets',
+      check: async input => ({
+        passed: !String(input).includes('sk-'),
+        reason: 'Input appears to contain an API key'
+      })
+    }
+  ]
 });
 
-const response = await client.chat.completions.create({
+const response = await client.chat.create({
   model: 'gpt-4',
   messages: [{ role: 'user', content: 'Hello!' }]
 });
 
 console.log(response.choices[0].message.content);
-console.log('Guardrails passed:', response.security?.guardrailResult?.passed);
+console.log('TealTiger metadata:', response.metadata);
 ```
+
+The package root exports the canonical integrated clients from `src/client`. Use `client.chat.create()` for OpenAI-compatible clients, `client.messages.create()` for Anthropic, and each provider-specific method listed below. The older `src/clients` wrappers are kept only for backward compatibility and are deprecated.
 
 ## 🌐 Supported Providers
 
 95%+ market coverage with 7 LLM providers:
 
-| Provider | Client | Models | Features |
-|----------|--------|--------|----------|
-| **OpenAI** | `TealOpenAI` | GPT-4, GPT-3.5 Turbo | Chat, Completions, Embeddings |
-| **Anthropic** | `TealAnthropic` | Claude 3, Claude 2 | Chat, Streaming |
-| **Google** | `TealGemini` | Gemini Pro, Ultra | Multimodal, Safety Settings |
-| **AWS** | `TealBedrock` | Claude, Titan, Jurassic, Command, Llama | Multi-model, Regional |
-| **Azure** | `TealAzureOpenAI` | GPT-4, GPT-3.5 | Deployment-based, Azure AD |
-| **Mistral** | `TealMistral` | Large, Medium, Small, Mixtral | EU Data Residency, GDPR |
-| **Cohere** | `TealCohere` | Command, Embed | RAG, Citations, Connectors |
-
-### Multi-Provider Orchestration
-
-```typescript
-import { TealMultiProvider, TealOpenAI, TealAnthropic } from 'tealtiger';
-
-const multiProvider = new TealMultiProvider({
-  strategy: 'priority',      // or 'round-robin', 'cost', 'use-case'
-  enableFailover: true,
-  maxFailoverAttempts: 3
-});
-
-multiProvider.registerProvider({
-  type: 'openai',
-  name: 'openai-primary',
-  client: new TealOpenAI({ apiKey: 'key' }),
-  priority: 1
-});
-
-multiProvider.registerProvider({
-  type: 'anthropic',
-  name: 'anthropic-backup',
-  client: new TealAnthropic({ apiKey: 'key' }),
-  priority: 2
-});
-
-// Automatic failover if primary fails
-const response = await multiProvider.chat({
-  messages: [{ role: 'user', content: 'Hello' }]
-});
-```
+| Provider | Client | Primary method | Models | Features |
+|----------|--------|----------------|--------|----------|
+| **OpenAI** | `TealOpenAI` | `client.chat.create()` | GPT-4, GPT-3.5 Turbo | Chat, Completions, Embeddings |
+| **Anthropic** | `TealAnthropic` | `client.messages.create()` | Claude 3, Claude 2 | Chat, Streaming |
+| **Google** | `TealGemini` | `client.generateContent()` | Gemini Pro, Ultra | Multimodal, Safety Settings |
+| **AWS** | `TealBedrock` | `client.invokeModel()` | Claude, Titan, Jurassic, Command, Llama | Multi-model, Regional |
+| **Azure** | `TealAzureOpenAI` | `client.chat.create()` | GPT-4, GPT-3.5 | Deployment-based, Azure AD |
+| **Mistral** | `TealMistral` | `client.chat.create()` | Large, Medium, Small, Mixtral | EU Data Residency, GDPR |
+| **Cohere** | `TealCohere` | `client.chat()` / `client.embed()` | Command, Embed | RAG, Citations, Connectors |
 
 ## 🛡️ Key Features
 
@@ -199,7 +173,7 @@ const circuit = new TealCircuit({
 
 // Wraps provider calls with circuit breaker protection
 const response = await circuit.execute(() =>
-  client.chat.completions.create({ model: 'gpt-4', messages })
+  client.chat.create({ model: 'gpt-4', messages })
 );
 ```
 

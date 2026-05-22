@@ -159,6 +159,8 @@ describe('TealSecrets — Detection Engine', () => {
     expect(detector!.severity).toBe('MEDIUM');
     expect(finding).toBeDefined();
     expect(finding!.category).toBe('saas');
+  });
+
   test('does not detect similar-looking SendGrid strings', () => {
     const content = [
       fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstu.', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq'),
