@@ -382,6 +382,6 @@ This documentation satisfies the following requirements from the enterprise-adop
 ## Support
 
 For questions or issues with the API documentation:
-- GitHub Issues: https://github.com/agentguard-ai/tealtiger-typescript/issues
+- GitHub Issues: https://github.com/agentguard-ai/tealtiger/issues
 - Documentation: https://tealtiger.co.in/docs
 - Email: support@tealtiger.co.in

@@ -30,13 +30,13 @@ There are many ways to contribute to TealTiger SDK:
 
 2. **Clone your fork**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/tealtiger-typescript.git
-   cd tealtiger-typescript
+   git clone https://github.com/YOUR_USERNAME/tealtiger.git
+   cd tealtiger
    ```
 
 3. **Add upstream remote**
    ```bash
-   git remote add upstream https://github.com/agentguard-ai/tealtiger-typescript.git
+   git remote add upstream https://github.com/agentguard-ai/tealtiger.git
    ```
 
 4. **Install dependencies**
@@ -122,7 +122,7 @@ git push origin feature/your-feature-name
 
 ### 6. Create a Pull Request
 
-1. Go to the [TealTiger TypeScript SDK repository](https://github.com/agentguard-ai/tealtiger-typescript)
+1. Go to the [TealTiger repository](https://github.com/agentguard-ai/tealtiger)
 2. Click "New Pull Request"
 3. Select your fork and branch
 4. Fill out the PR template
@@ -390,14 +390,14 @@ Report violations to: support@tealtiger.co.in
 ## 🏆 Recognition
 
 Contributors will be:
-- Listed in our [Contributors](https://github.com/agentguard-ai/tealtiger-typescript/graphs/contributors) page
+- Listed in our [Contributors](https://github.com/agentguard-ai/tealtiger/graphs/contributors) page
 - Mentioned in release notes for significant contributions
 - Invited to our contributors Discord channel (coming soon)
 
 ## 📞 Getting Help
 
-- **Questions?** Open a [Discussion](https://github.com/agentguard-ai/tealtiger-typescript/discussions)
-- **Bug?** Open an [Issue](https://github.com/agentguard-ai/tealtiger-typescript/issues)
+- **Questions?** Open a [Discussion](https://github.com/agentguard-ai/tealtiger/discussions)
+- **Bug?** Open an [Issue](https://github.com/agentguard-ai/tealtiger/issues)
 - **Security?** Email support@tealtiger.co.in
 
 ## 📄 License

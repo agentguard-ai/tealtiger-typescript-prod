@@ -12,7 +12,7 @@ Instead, please report them via email to:
 
 **Please use GitHub Security Advisories to report vulnerabilities:**
 
-https://github.com/agentguard-ai/tealtiger-sdk/security/advisories/new
+https://github.com/agentguard-ai/tealtiger/security/advisories/new
 
 **Note**: If you get a 404 error, Security Advisories may not be enabled yet. In that case, please:
 1. Open a GitHub issue with the title prefix `[SECURITY]` (do NOT include sensitive details)
@@ -218,7 +218,7 @@ We welcome security researchers to audit our code:
 ### Documentation
 
 - [Security Best Practices](https://github.com/agentguard-ai/tealtiger#readme)
-- [API Documentation](https://github.com/agentguard-ai/tealtiger-sdk#readme)
+- [API Documentation](https://github.com/agentguard-ai/tealtiger#readme)
 
 ### Examples
 
@@ -232,8 +232,8 @@ We recognize security researchers who help us improve:
 
 ## 📞 Contact
 
-- **Security Issues**: Use [GitHub Security Advisories](https://github.com/agentguard-ai/tealtiger-sdk/security/advisories/new)
-- **GitHub**: [agentguard-ai/tealtiger-sdk](https://github.com/agentguard-ai/tealtiger-sdk)
+- **Security Issues**: Use [GitHub Security Advisories](https://github.com/agentguard-ai/tealtiger/security/advisories/new)
+- **GitHub**: [agentguard-ai/tealtiger](https://github.com/agentguard-ai/tealtiger)
 
 ## 📄 Disclosure Policy
 
