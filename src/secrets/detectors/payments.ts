@@ -5,10 +5,11 @@
 import { SecretPattern } from '../types';
 
 export const paymentDetectors: SecretPattern[] = [
-  // Stripe (5 patterns)
+  // Stripe (6 patterns)
   { id: 'stripe-secret-key', regex: /\bsk_live_[0-9a-zA-Z]{24,}\b/, category: 'payments', severity: 'CRITICAL', description: 'Stripe Secret Key (Live)' },
-  { id: 'stripe-publishable-key', regex: /\bpk_live_[0-9a-zA-Z]{24,}\b/, category: 'payments', severity: 'HIGH', description: 'Stripe Publishable Key (Live)' },
-  { id: 'stripe-test-secret', regex: /\bsk_test_[0-9a-zA-Z]{24,}\b/, category: 'payments', severity: 'MEDIUM', description: 'Stripe Secret Key (Test)' },
+  { id: 'stripe-publishable-key', regex: /\bpk_live_[0-9a-zA-Z]{24,}\b/, category: 'payments', severity: 'CRITICAL', description: 'Stripe Publishable Key (Live)' },
+  { id: 'stripe-test-secret', regex: /\bsk_test_[0-9a-zA-Z]{24,}\b/, category: 'payments', severity: 'LOW', description: 'Stripe Secret Key (Test)' },
+  { id: 'stripe-test-publishable-key', regex: /\bpk_test_[0-9a-zA-Z]{24,}\b/, category: 'payments', severity: 'LOW', description: 'Stripe Publishable Key (Test)' },
   { id: 'stripe-restricted-key', regex: /\brk_live_[0-9a-zA-Z]{24,}\b/, category: 'payments', severity: 'CRITICAL', description: 'Stripe Restricted Key (Live)' },
   { id: 'stripe-webhook-secret', regex: /\bwhsec_[0-9a-zA-Z]{32,}\b/, category: 'payments', severity: 'HIGH', description: 'Stripe Webhook Secret' },
 

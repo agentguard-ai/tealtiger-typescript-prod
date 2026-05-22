@@ -55,6 +55,24 @@ describe('TealSecrets — Detection Engine', () => {
     expect(stripeFinding!.category).toBe('payments');
   });
 
+  test.each([
+    ['stripe-secret-key', fixture('sk_live_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'), 'CRITICAL'],
+    ['stripe-publishable-key', fixture('pk_live_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'), 'CRITICAL'],
+    ['stripe-test-secret', fixture('sk_test_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'), 'LOW'],
+    ['stripe-test-publishable-key', fixture('pk_test_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'), 'LOW'],
+  ])('detects %s with configured Stripe severity', (type, key, severity) => {
+    const findings = secrets.scan(`STRIPE_KEY=${key}`);
+    const finding = findings.find((f) => f.type === type);
+    const detector = builtInDetectors.find((d) => d.id === type);
+
+    expect(detector).toBeDefined();
+    expect(detector!.category).toBe('payments');
+    expect(detector!.severity).toBe(severity);
+    expect(finding).toBeDefined();
+    expect(finding!.category).toBe('payments');
+    expect(finding!.severity).toBe(severity);
+  });
+
   test('detects RSA Private Key', () => {
     const content = 'private_key = -----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...';
     const findings = secrets.scan(content);
@@ -141,6 +159,15 @@ describe('TealSecrets — Detection Engine', () => {
     expect(detector!.severity).toBe('MEDIUM');
     expect(finding).toBeDefined();
     expect(finding!.category).toBe('saas');
+  test('does not detect similar-looking SendGrid strings', () => {
+    const content = [
+      fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstu.', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq'),
+      fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstuv_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq'),
+      fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstuv.', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnop'),
+    ].join('\n');
+
+    const findings = secrets.scan(content);
+    expect(findings.find((f) => f.type === 'sendgrid-api-key')).toBeUndefined();
   });
 
   test('does not report common SaaS words as secret tokens', () => {

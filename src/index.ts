@@ -65,7 +65,9 @@ export { TealGuard } from './core/guard/TealGuard';
 export type {
   TealGuardConfig,
   TealGuardResult,
-  CustomGuardrailRule
+  CustomGuardrailRule,
+  CustomGuardrail,
+  CustomGuardrailCheckResult
 } from './core/guard/TealGuard';
 
 // TealCircuit - Circuit Breaker (v1.1.0)
