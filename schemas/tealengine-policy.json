@@ -1,0 +1,263 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://tealtiger.ai/schemas/tealengine-policy.json",
+  "title": "TealEngine Policy",
+  "description": "JSON Schema for TealTiger TealEngine policy configuration files",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Policy schema version"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the policy"
+    },
+    "name": {
+      "type": "string",
+      "description": "Policy name (used in test suites)"
+    },
+    "mode": {
+      "type": "object",
+      "description": "Policy evaluation mode configuration",
+      "properties": {
+        "default": {
+          "type": "string",
+          "enum": ["ENFORCE", "MONITOR", "REPORT_ONLY"],
+          "description": "Global default evaluation mode"
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["ENFORCE", "MONITOR", "REPORT_ONLY"]
+          },
+          "description": "Environment-specific mode overrides"
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["ENFORCE", "MONITOR", "REPORT_ONLY"]
+          },
+          "description": "Policy-specific mode overrides"
+        }
+      },
+      "required": ["default"]
+    },
+    "policy": {
+      "type": "object",
+      "description": "Nested policy configuration (used in test suites)",
+      "properties": {
+        "tools": { "$ref": "#/definitions/toolPolicy" },
+        "content": { "$ref": "#/definitions/contentPolicy" },
+        "identity": { "$ref": "#/definitions/identityPolicy" },
+        "codeExecution": { "$ref": "#/definitions/codeExecutionPolicy" },
+        "behavioral": { "$ref": "#/definitions/behavioralPolicy" },
+        "memory": { "$ref": "#/definitions/memoryPolicy" }
+      }
+    },
+    "tools": { "$ref": "#/definitions/toolPolicy" },
+    "identity": { "$ref": "#/definitions/identityPolicy" },
+    "codeExecution": { "$ref": "#/definitions/codeExecutionPolicy" },
+    "behavioral": { "$ref": "#/definitions/behavioralPolicy" },
+    "memory": { "$ref": "#/definitions/memoryPolicy" },
+    "content": { "$ref": "#/definitions/contentPolicy" },
+    "security": {
+      "type": "object",
+      "description": "Security policy configuration (v1.2 format)",
+      "properties": {
+        "pii_detection": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "action": { "type": "string", "enum": ["REDACT", "DENY", "ALLOW"] },
+            "categories": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "prompt_injection": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "action": { "type": "string", "enum": ["DENY", "ALLOW", "REDACT"] },
+            "sensitivity": { "type": "string", "enum": ["low", "medium", "high"] }
+          }
+        },
+        "content_moderation": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "action": { "type": "string", "enum": ["DENY", "ALLOW", "REDACT"] },
+            "threshold": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "description": "Cost governance configuration (v1.2 format)",
+      "properties": {
+        "max_cost_per_request": { "type": "number", "minimum": 0 },
+        "max_cost_per_session": { "type": "number", "minimum": 0 },
+        "max_cost_per_day": { "type": "number", "minimum": 0 },
+        "alert_threshold": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "reliability": {
+      "type": "object",
+      "description": "Reliability configuration (v1.2 format)",
+      "properties": {
+        "max_retries": { "type": "integer", "minimum": 0 },
+        "retry_budget_per_minute": { "type": "integer", "minimum": 0 },
+        "circuit_breaker": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "failure_threshold": { "type": "integer", "minimum": 1 },
+            "reset_timeout_seconds": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "registry": {
+      "type": "object",
+      "description": "Model and tool registry configuration (v1.2 format)",
+      "properties": {
+        "allowed_models": { "type": "array", "items": { "type": "string" } },
+        "allowed_tools": {
+          "oneOf": [
+            { "type": "string", "pattern": "^\\*$" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "deny_tools": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "anyOf": [
+    { "required": ["version"] },
+    { "required": ["policy"] },
+    { "required": ["tools"] },
+    { "required": ["security"] }
+  ],
+  "definitions": {
+    "toolPolicy": {
+      "type": "object",
+      "description": "Tool usage policy configuration",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "allowed": { "type": "boolean" },
+          "maxSize": { "type": "string" },
+          "rateLimit": {
+            "type": "object",
+            "properties": {
+              "max": { "type": "integer", "minimum": 1 },
+              "window": { "type": "string" }
+            },
+            "required": ["max", "window"]
+          },
+          "allowedTables": { "type": "array", "items": { "type": "string" } },
+          "maxRows": { "type": "integer", "minimum": 1 },
+          "parameters": { "type": "object" }
+        },
+        "required": ["allowed"]
+      }
+    },
+    "identityPolicy": {
+      "type": "object",
+      "description": "Identity and access control policy",
+      "properties": {
+        "agentId": { "type": "string" },
+        "role": { "type": "string" },
+        "permissions": { "type": "array", "items": { "type": "string" } },
+        "forbidden": { "type": "array", "items": { "type": "string" } },
+        "costLimit": {
+          "type": "object",
+          "properties": {
+            "daily": { "type": "number", "minimum": 0 },
+            "hourly": { "type": "number", "minimum": 0 },
+            "monthly": { "type": "number", "minimum": 0 }
+          }
+        }
+      },
+      "required": ["agentId", "role", "permissions"]
+    },
+    "codeExecutionPolicy": {
+      "type": "object",
+      "description": "Code execution policy",
+      "properties": {
+        "allowedLanguages": { "type": "array", "items": { "type": "string" } },
+        "blockedFunctions": { "type": "array", "items": { "type": "string" } },
+        "blockedPatterns": { "type": "array", "items": { "type": "string" } },
+        "maxLength": { "type": "integer", "minimum": 1 },
+        "timeout": { "type": "integer", "minimum": 0 },
+        "requireSandbox": { "type": "boolean" }
+      },
+      "required": ["allowedLanguages", "blockedFunctions", "maxLength", "timeout", "requireSandbox"]
+    },
+    "behavioralPolicy": {
+      "type": "object",
+      "description": "Behavioral monitoring policy",
+      "properties": {
+        "costLimit": {
+          "type": "object",
+          "properties": {
+            "daily": { "type": "number", "minimum": 0 },
+            "hourly": { "type": "number", "minimum": 0 },
+            "monthly": { "type": "number", "minimum": 0 }
+          },
+          "required": ["daily"]
+        },
+        "rateLimit": {
+          "type": "object",
+          "properties": {
+            "requests": { "type": "integer", "minimum": 1 },
+            "window": { "type": "string" }
+          },
+          "required": ["requests", "window"]
+        },
+        "anomalyThreshold": { "type": "number", "minimum": 0 }
+      },
+      "required": ["costLimit", "rateLimit"]
+    },
+    "memoryPolicy": {
+      "type": "object",
+      "description": "Memory policy configuration",
+      "properties": {
+        "maxSize": { "type": "integer", "minimum": 0 },
+        "validateInputs": { "type": "boolean" },
+        "sanitizeBeforeStorage": { "type": "boolean" },
+        "blockedPatterns": { "type": "array", "items": { "type": "string" } },
+        "default_scope": { "type": "string" },
+        "max_retention_days": { "type": "integer", "minimum": 1 },
+        "pii_in_memory": { "type": "string", "enum": ["REDACT", "ALLOW", "DENY_WRITE"] },
+        "secrets_in_memory": { "type": "string", "enum": ["REDACT", "ALLOW", "DENY_WRITE"] }
+      }
+    },
+    "contentPolicy": {
+      "type": "object",
+      "description": "Content filtering and moderation policy",
+      "properties": {
+        "pii": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "blockedTypes": { "type": "array", "items": { "type": "string" } },
+            "redactInLogs": { "type": "boolean" }
+          },
+          "required": ["enabled"]
+        },
+        "moderation": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+            "categories": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": ["enabled"]
+        }
+      }
+    }
+  }
+}
