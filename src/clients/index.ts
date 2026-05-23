@@ -1,7 +1,10 @@
 /**
- * TealTiger AI Clients
+ * TealTiger legacy AI client wrappers
  * 
- * Drop-in replacements for AI provider clients with integrated security
+ * @deprecated Import provider clients from the package root or from
+ * `src/client` inside the repository. This module keeps the pre-v1.1 wrapper
+ * API available for compatibility, but the canonical public SDK clients are
+ * the integrated clients in `src/client`.
  */
 
 export * from './TealOpenAI';

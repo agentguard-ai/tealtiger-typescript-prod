@@ -248,3 +248,10 @@ export class TealOpenAI extends TealBaseClient {
     return promptCost + completionCost;
   }
 }
+
+/**
+ * Create a canonical TealOpenAI client.
+ */
+export function createTealOpenAI(config: TealOpenAIConfig): TealOpenAI {
+  return new TealOpenAI(config);
+}

@@ -4,12 +4,55 @@
  * This is the main entry point for the TealTiger SDK
  */
 
-// Main SDK class (legacy)
-export { TealTiger } from './client/TealTiger';
-
-// Integrated Clients (v1.1.0)
-export { TealBaseClient, TealOpenAI, TealAnthropic } from './client';
-export type { TealClientConfig, RequestContext } from './client';
+// Canonical SDK clients
+export {
+  TealTiger,
+  SSAClient,
+  TealBaseClient,
+  TealOpenAI,
+  createTealOpenAI,
+  TealAnthropic,
+  createTealAnthropic,
+  TealGemini,
+  TealBedrock,
+  TealAzureOpenAI,
+  createTealAzureOpenAI,
+  TealMistral,
+  TealCohere
+} from './client';
+export type {
+  TealClientConfig,
+  RequestContext,
+  TealOpenAIConfig,
+  ChatMessage,
+  ChatCompletionParams,
+  ChatCompletionResponse,
+  CompletionParams,
+  CompletionResponse,
+  TealAnthropicConfig,
+  AnthropicMessage,
+  MessagesParams,
+  MessagesResponse,
+  GenerationConfig,
+  GenerateContentParams,
+  GenerateContentResponse,
+  TealGeminiConfig,
+  BedrockProvider,
+  InvokeModelParams,
+  InvokeModelResponse,
+  TealBedrockConfig,
+  TealAzureOpenAIConfig,
+  TealMistralConfig,
+  CohereChatMessage,
+  CohereDocument,
+  CohereConnector,
+  CohereChatParams,
+  CohereCitation,
+  CohereChatResponse,
+  CohereEmbedParams,
+  CohereEmbedResponse,
+  TealCohereConfig
+} from './client';
 export {
   TealTigerError,
   PolicyViolationError,
@@ -243,27 +286,6 @@ export type {
 export type {
   BudgetEnforcementResult
 } from './cost/BudgetManager';
-
-// Drop-in Client Wrappers (legacy - use TealOpenAI/TealAnthropic from './client' instead)
-export {
-  createTealOpenAI,
-  createTealAnthropic,
-  TealAzureOpenAI,
-  createTealAzureOpenAI
-} from './clients';
-
-export type {
-  TealOpenAIConfig,
-  ChatCompletionRequest,
-  ChatCompletionResponse,
-  TealAnthropicConfig,
-  MessageCreateRequest,
-  MessageCreateResponse,
-  MessageContent,
-  TealAzureOpenAIConfig,
-  AzureChatCompletionRequest,
-  AzureChatCompletionResponse
-} from './clients';
 
 // Version
 export const VERSION = '0.2.2';
