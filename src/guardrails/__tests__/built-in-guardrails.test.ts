@@ -208,6 +208,42 @@ describe('PromptInjectionGuardrail', () => {
     expect(result.metadata.detections).toHaveLength(0);
   });
 
+  it('should pass code snippets with "ignore" in comments', async () => {
+    const guardrail = new PromptInjectionGuardrail();
+    const result = await guardrail.evaluate(
+      '// TODO: ignore this code block for now\nconst x = 1;'
+    );
+
+    expect(result.passed).toBe(true);
+  });
+
+  it('should pass technical documentation about prompt engineering', async () => {
+    const guardrail = new PromptInjectionGuardrail();
+    const result = await guardrail.evaluate(
+      'Prompt engineering is the practice of designing effective inputs for large language models.'
+    );
+
+    expect(result.passed).toBe(true);
+  });
+
+  it('should pass "ignore" in non-injection context like formatting', async () => {
+    const guardrail = new PromptInjectionGuardrail();
+    const result = await guardrail.evaluate(
+      'Please ignore the previous formatting and show me the raw text'
+    );
+
+    expect(result.passed).toBe(true);
+  });
+
+  it('should pass strings containing "system" in non-injection context', async () => {
+    const guardrail = new PromptInjectionGuardrail();
+    const result = await guardrail.evaluate(
+      'The solar system consists of the Sun and eight planets'
+    );
+
+    expect(result.passed).toBe(true);
+  });
+
   it('should respect sensitivity levels', async () => {
     const lowSensitivity = new PromptInjectionGuardrail({ sensitivity: 'low' });
     const highSensitivity = new PromptInjectionGuardrail({ sensitivity: 'high' });
