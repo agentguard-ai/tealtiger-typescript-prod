@@ -6,6 +6,7 @@
 
 import { ModelProvider, TokenUsage } from './types';
 import { getModelPricing } from './pricing';
+import { getDefaultLogger } from '../utils/logger';
 
 /**
  * Cost comparison result for a single provider
@@ -100,12 +101,13 @@ export class CostCalculator {
     tokenUsage: TokenUsage,
     models: Array<{ model: string; provider?: ModelProvider }>
   ): MultiProviderCostComparison {
+    const logger = getDefaultLogger();
     const providers: ProviderCostComparison[] = [];
 
     for (const { model, provider } of models) {
       const pricing = getModelPricing(model, provider);
       if (!pricing) {
-        console.warn(`[CostCalculator] No pricing found for model: ${model}`);
+        logger.warn(`[CostCalculator] No pricing found for model: ${model}`);
         continue;
       }
 

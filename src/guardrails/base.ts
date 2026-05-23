@@ -5,11 +5,14 @@
  * with the GuardrailEngine execution system.
  */
 
+import type { Logger } from '../utils/logger';
+
 export interface GuardrailConfig {
   name?: string;
   enabled?: boolean;
   version?: string;
   description?: string;
+  logger?: Logger;
   [key: string]: any;
 }
 

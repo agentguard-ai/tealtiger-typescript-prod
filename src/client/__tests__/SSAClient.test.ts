@@ -379,5 +379,57 @@ describe('SSAClient', () => {
       // This test verifies the debug flag is being used
       expect(mockAxiosInstance.post).toHaveBeenCalled();
     });
+
+    it('should redact sensitive request headers and body in debug logs', async () => {
+      const debugConfig: TealTigerConfig = {
+        ssaUrl: 'https://test-ssa.example.com',
+        apiKey: 'test-api-key',
+        timeout: 5000,
+        retries: 3,
+        debug: true
+      };
+
+      mockAxiosInstance.interceptors.request.use.mockClear();
+      mockAxiosInstance.interceptors.response.use.mockClear();
+      new SSAClient(debugConfig);
+
+      const requestInterceptor = mockAxiosInstance.interceptors.request.use.mock.calls[0][0];
+
+      await requestInterceptor({
+        method: 'post',
+        url: '/api/security/evaluate',
+        headers: {
+          'X-API-Key': 'sk_live_1234567890123456',
+          Authorization: 'Bearer secret-token'
+        },
+        data: {
+          apiKey: 'sk_live_1234567890123456',
+          nested: {
+            token: 'xoxb-1234567890-ABCDEF'
+          }
+        }
+      });
+
+      expect(console.log).toHaveBeenCalledWith(
+        '[TealTiger SDK] Headers:',
+        {
+          'X-API-Key': '[REDACTED]',
+          Authorization: '[REDACTED]'
+        }
+      );
+
+      expect(console.log).toHaveBeenCalledWith(
+        '[TealTiger SDK] Body:',
+        {
+          apiKey: '[REDACTED]',
+          nested: {
+            token: '[REDACTED]'
+          }
+        }
+      );
+
+      expect(JSON.stringify((console.log as jest.Mock).mock.calls)).not.toContain('secret-token');
+      expect(JSON.stringify((console.log as jest.Mock).mock.calls)).not.toContain('sk_live_1234567890123456');
+    });
   });
 });

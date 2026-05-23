@@ -68,6 +68,28 @@ describe('TealAudit', () => {
       expect(consoleOutput).toHaveLength(3);
     });
 
+    it('should redact sensitive fields before console output', () => {
+      const audit = new TealAudit({
+        outputs: [new ConsoleOutput()],
+      });
+
+      audit.log(createEvent({
+        metadata: {
+          apiKey: 'sk_live_1234567890123456',
+          nested: {
+            token: 'xoxb-1234567890-ABCDEF'
+          }
+        }
+      }));
+
+      expect(consoleOutput).toHaveLength(1);
+
+      const logged = JSON.parse(consoleOutput[0]);
+      expect(logged.metadata.apiKey).toBe('[REDACTED]');
+      expect(logged.metadata.nested.token).toBe('[REDACTED]');
+      expect(consoleOutput[0]).not.toContain('sk_live_1234567890123456');
+    });
+
     it('should handle console output errors gracefully', () => {
       const failingOutput: AuditOutput = {
         write: () => {
