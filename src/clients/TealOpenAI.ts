@@ -2,6 +2,11 @@
  * TealOpenAI Client
  * 
  * Drop-in replacement for OpenAI client with integrated security and cost tracking
+ * 
+ * @deprecated Use `TealOpenAI` from `tealtiger/client` (canonical integrated client).
+ * The canonical client extends `TealBaseClient` and supports full component integration
+ * (TealEngine, TealGuard, TealCircuit, TealAudit, TealMonitor).
+ * Import: `import { TealOpenAI } from 'tealtiger';` (resolves to canonical version).
  */
 
 import { GuardrailEngine, GuardrailEngineResult } from '../guardrails';
@@ -308,6 +313,7 @@ export class TealOpenAI {
 
 /**
  * Create a TealOpenAI client
+ * @deprecated Use `new TealOpenAI(config)` from `tealtiger/client` (canonical integrated client).
  */
 export function createTealOpenAI(config: TealOpenAIConfig): TealOpenAI {
   return new TealOpenAI(config);

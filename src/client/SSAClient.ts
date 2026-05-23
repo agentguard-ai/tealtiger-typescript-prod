@@ -1,7 +1,9 @@
 /**
  * Security Sidecar Agent (SSA) HTTP Client
  * 
- * This class handles all HTTP communication with the Security Sidecar Agent
+ * @internal Internal HTTP client for communicating with the Security Sidecar Agent.
+ * Consumers should use TealTiger or the integrated provider clients instead.
+ * This class handles all HTTP communication with the Security Sidecar Agent.
  */
 
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';

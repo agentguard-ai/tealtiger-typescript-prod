@@ -3,6 +3,11 @@
  * 
  * AWS Bedrock integration with TealTiger security and cost tracking
  * Supports multiple providers: Claude, Titan, Jurassic, Command, Llama
+ * 
+ * @deprecated Use `TealBedrock` from `tealtiger/client` (canonical integrated client).
+ * The canonical client extends `TealBaseClient` and supports full component integration
+ * (TealEngine, TealGuard, TealCircuit, TealAudit, TealMonitor).
+ * Import: `import { TealBedrock } from 'tealtiger';` (resolves to canonical version).
  */
 
 import {
@@ -445,6 +450,7 @@ export class TealBedrock {
 
 /**
  * Create a TealBedrock client
+ * @deprecated Use `new TealBedrock(config)` from `tealtiger/client` (canonical integrated client).
  */
 export function createTealBedrock(config?: TealBedrockConfig): TealBedrock {
   return new TealBedrock(config);

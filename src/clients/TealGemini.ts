@@ -2,6 +2,11 @@
  * TealGemini Client
  * 
  * Google Gemini integration with TealTiger security and cost tracking
+ * 
+ * @deprecated Use `TealGemini` from `tealtiger/client` (canonical integrated client).
+ * The canonical client extends `TealBaseClient` and supports full component integration
+ * (TealEngine, TealGuard, TealCircuit, TealAudit, TealMonitor).
+ * Import: `import { TealGemini } from 'tealtiger';` (resolves to canonical version).
  */
 
 import { GoogleGenerativeAI, GenerateContentRequest, GenerateContentResult, Content, SafetySetting } from '@google/generative-ai';
@@ -386,6 +391,7 @@ export class TealGemini {
 
 /**
  * Create a TealGemini client
+ * @deprecated Use `new TealGemini(config)` from `tealtiger/client` (canonical integrated client).
  */
 export function createTealGemini(config: TealGeminiConfig): TealGemini {
   return new TealGemini(config);

@@ -1,8 +1,13 @@
 /**
  * TealTiger SDK - Main Client Class
  * 
- * This is the primary interface for developers to interact with the
- * AI Agent Security Platform
+ * @deprecated Use the integrated provider clients from `tealtiger/client` instead
+ * (TealOpenAI, TealAnthropic, TealGemini, TealBedrock, etc.). These provide
+ * a more comprehensive integration with TealEngine, TealGuard, TealCircuit,
+ * TealAudit, and TealMonitor.
+ * 
+ * This class is retained for backward compatibility with existing
+ * Security Sidecar Agent deployments.
  */
 
 import {

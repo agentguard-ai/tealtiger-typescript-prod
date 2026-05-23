@@ -4,7 +4,7 @@
  * This is the main entry point for the TealTiger SDK
  */
 
-// Main SDK class (legacy)
+/** @deprecated Use integrated provider clients (TealOpenAI, TealAnthropic, etc.) from './client' instead. */
 export { TealTiger } from './client/TealTiger';
 
 // Integrated Clients (v1.1.0)
@@ -231,7 +231,7 @@ export type {
   BudgetEnforcementResult
 } from './cost/BudgetManager';
 
-// Drop-in Client Wrappers (legacy - use TealOpenAI/TealAnthropic from './client' instead)
+/** @deprecated Use canonical clients from './client' instead (TealOpenAI, TealAnthropic, TealGemini, TealBedrock, etc.). */
 export {
   createTealOpenAI,
   createTealAnthropic,
@@ -239,6 +239,7 @@ export {
   createTealAzureOpenAI
 } from './clients';
 
+/** @deprecated Use client config types from './client' instead. */
 export type {
   TealOpenAIConfig,
   ChatCompletionRequest,

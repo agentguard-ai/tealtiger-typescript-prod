@@ -47,27 +47,31 @@ npm install tealtiger
 ```
 
 ```typescript
-import { TealOpenAI, GuardrailEngine, PIIDetectionGuardrail, PromptInjectionGuardrail } from 'tealtiger';
+import { TealOpenAI, TealEngine, GuardrailEngine, PIIDetectionGuardrail, PromptInjectionGuardrail } from 'tealtiger';
 
-// Set up guardrails
+// Set up guardrails (standalone or with TealGuard)
 const engine = new GuardrailEngine();
 engine.registerGuardrail(new PIIDetectionGuardrail());
 engine.registerGuardrail(new PromptInjectionGuardrail());
 
 // Create guarded client — drop-in replacement for OpenAI
+// Uses TealBaseClient integration with TealEngine for policy evaluation
 const client = new TealOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   agentId: 'my-agent',
-  guardrailEngine: engine
+  policies: {
+    tools: { allowed: ['*'] },
+    identity: { allowedAgents: ['my-agent'] }
+  }
 });
 
-const response = await client.chat.completions.create({
+const response = await client.chat.create({
   model: 'gpt-4',
   messages: [{ role: 'user', content: 'Hello!' }]
 });
 
 console.log(response.choices[0].message.content);
-console.log('Guardrails passed:', response.security?.guardrailResult?.passed);
+console.log('Component metadata:', response.metadata);
 ```
 
 ## 🌐 Supported Providers
@@ -110,7 +114,7 @@ multiProvider.registerProvider({
 });
 
 // Automatic failover if primary fails
-const response = await multiProvider.chat({
+const response = await multiProvider.execute('chat', {
   messages: [{ role: 'user', content: 'Hello' }]
 });
 ```
@@ -199,7 +203,7 @@ const circuit = new TealCircuit({
 
 // Wraps provider calls with circuit breaker protection
 const response = await circuit.execute(() =>
-  client.chat.completions.create({ model: 'gpt-4', messages })
+  client.chat.create({ model: 'gpt-4', messages })
 );
 ```
 
@@ -239,8 +243,7 @@ const context = ContextManager.createContext({
 // Context propagates through TealEngine, TealAudit, and all providers
 const response = await client.chat.create({
   model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hello' }],
-  context: context
+  messages: [{ role: 'user', content: 'Hello' }]
 });
 
 // Query audit logs by correlation_id

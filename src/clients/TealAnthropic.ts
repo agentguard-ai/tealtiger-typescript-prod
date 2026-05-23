@@ -2,6 +2,11 @@
  * TealAnthropic Client
  * 
  * Drop-in replacement for Anthropic client with integrated security and cost tracking
+ * 
+ * @deprecated Use `TealAnthropic` from `tealtiger/client` (canonical integrated client).
+ * The canonical client extends `TealBaseClient` and supports full component integration
+ * (TealEngine, TealGuard, TealCircuit, TealAudit, TealMonitor).
+ * Import: `import { TealAnthropic } from 'tealtiger';` (resolves to canonical version).
  */
 
 import { GuardrailEngine, GuardrailEngineResult } from '../guardrails';
@@ -329,6 +334,7 @@ export class TealAnthropic {
 
 /**
  * Create a TealAnthropic client
+ * @deprecated Use `new TealAnthropic(config)` from `tealtiger/client` (canonical integrated client).
  */
 export function createTealAnthropic(config: TealAnthropicConfig): TealAnthropic {
   return new TealAnthropic(config);
