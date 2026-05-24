@@ -9,6 +9,15 @@ export { Guardrail, GuardrailResult, GuardrailConfig, GuardrailMetadata, Guardra
 
 // Engine
 export { GuardrailEngine, GuardrailEngineResult, GuardrailEngineOptions, GuardrailExecutionResult } from './engine';
+export {
+  StreamingGuardrailEvaluator,
+  StreamingGuardrailEvaluatorOptions,
+  StreamingGuardrailEvent,
+  StreamingGuardrailChunkEvent,
+  StreamingGuardrailEvaluationEvent,
+  StreamingGuardrailTerminationEvent,
+  StreamingGuardrailDoneEvent
+} from './streaming-evaluator';
 
 // Built-in guardrails
 export { PIIDetectionGuardrail, PIIDetectionConfig } from './pii-detection';
