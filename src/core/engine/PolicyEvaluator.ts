@@ -19,6 +19,8 @@ import {
   IdentityPolicy,
   CodeExecutionPolicy,
   BehavioralPolicy,
+  ContentPolicy,
+  DataClassificationLevel,
   PolicyEvaluationResult,
   RequestContext,
 } from './types';
@@ -101,7 +103,7 @@ export class PolicyEvaluator {
     }
 
     // 5. Check content policies (simplified - would integrate with TealGuard)
-    if (context.content && policies.content) {
+    if (policies.content) {
       results.push(this.evaluateContentPolicy(context, policies.content));
     }
 
@@ -364,12 +366,46 @@ export class PolicyEvaluator {
    * @returns Evaluation result
    */
   private evaluateContentPolicy(
-    _context: RequestContext,
-    _contentPolicy: any
+    context: RequestContext,
+    contentPolicy: ContentPolicy
   ): PolicyEvaluationResult {
+    const requestedClassification = (
+      context.metadata?.dataClassification ??
+      context.metadata?.data_classification ??
+      context.toolParams?.dataClassification ??
+      context.toolParams?.data_classification
+    ) as DataClassificationLevel | undefined;
+
+    const maxClassification = contentPolicy.dataClassification?.maxLevel;
+    if (
+      requestedClassification &&
+      maxClassification &&
+      this.compareDataClassification(requestedClassification, maxClassification) > 0
+    ) {
+      return this.createResult(
+        false,
+        ['content.dataClassification'],
+        `Data classification '${requestedClassification}' exceeds maximum '${maxClassification}'`
+      );
+    }
+
     // Simplified implementation
     // Full implementation would integrate with TealGuard
     return this.createResult(true, ['content']);
+  }
+
+  private compareDataClassification(
+    left: DataClassificationLevel,
+    right: DataClassificationLevel
+  ): number {
+    const levels: Record<DataClassificationLevel, number> = {
+      public: 0,
+      internal: 1,
+      confidential: 2,
+      restricted: 3,
+    };
+
+    return levels[left] - levels[right];
   }
 
   /**

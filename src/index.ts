@@ -66,7 +66,8 @@ export {
   TealEngine,
   PolicyReloadEventType,
   PolicyWatcher,
-  PolicyWatcherEventType
+  PolicyWatcherEventType,
+  PolicyFederation
 } from './core/engine';
 export type {
   TealPolicy,
@@ -76,6 +77,7 @@ export type {
   BehavioralPolicy,
   MemoryPolicy,
   ContentPolicy,
+  DataClassificationLevel,
   PolicyEvaluationResult,
   ValidationResult,
   ValidationError,
@@ -96,7 +98,12 @@ export type {
   PolicyWatcherLoadResult,
   PolicyWatcherOptions,
   ProviderPolicySource,
-  UrlPolicySource
+  UrlPolicySource,
+  ChildContextOptions,
+  FederatedBudgetCeiling,
+  PolicyFederationConstraints,
+  PolicyFederationPayload,
+  PolicyFederationVerificationResult
 } from './core/engine';
 
 // Enterprise Adoption Features (v1.1.x) - P0.1, P0.2, P0.3

@@ -181,6 +181,7 @@ export class PolicyCache {
    * - Action
    * - Tool (if applicable)
    * - Model (if applicable)
+   * - Cost, parameters, metadata, content, and code inputs that can affect policy decisions
    * 
    * @param context - Request context
    * @returns Cache key
@@ -191,8 +192,34 @@ export class PolicyCache {
       context.action,
       context.tool || '',
       context.model || '',
+      context.cost === undefined ? '' : String(context.cost),
+      this.stableSerialize(context.toolParams),
+      this.stableSerialize(context.metadata),
+      context.content || '',
+      context.code || '',
     ];
     return parts.join(':');
+  }
+
+  private stableSerialize(value: unknown): string {
+    if (value === undefined) {
+      return '';
+    }
+
+    if (value === null || typeof value !== 'object') {
+      return JSON.stringify(value);
+    }
+
+    if (Array.isArray(value)) {
+      return `[${value.map((item) => this.stableSerialize(item)).join(',')}]`;
+    }
+
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .filter((key) => record[key] !== undefined)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${this.stableSerialize(record[key])}`)
+      .join(',')}}`;
   }
 
   /**

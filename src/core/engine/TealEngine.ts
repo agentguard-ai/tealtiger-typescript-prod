@@ -36,6 +36,11 @@ import {
   type PolicySourceDescriptor,
   type PolicyWatcherOptions
 } from './PolicyWatcher';
+import {
+  PolicyFederation,
+  type PolicyFederationConstraints,
+  type PolicyFederationPayload,
+} from './PolicyFederation';
 import { getComponentVersions, getPackageVersion } from '../utils/version';
 import { ExecutionContext } from '../context/ExecutionContext';
 import { ContextManager } from '../context/ContextManager';
@@ -113,6 +118,12 @@ export class TealEngine {
   private policyWatcher: PolicyWatcher | undefined;
   private readonly policyReloadListeners = new Set<PolicyReloadListener>();
 
+  /** Local policy before inherited federation constraints are applied */
+  private localPolicies: TealPolicy;
+
+  /** Inherited parent policy constraints, if configured */
+  private federationConstraints: PolicyFederationConstraints | undefined;
+
   /** Mode configuration */
   private modeConfig: ModeConfig;
 
@@ -165,9 +176,17 @@ export class TealEngine {
       autoWatchPolicies?: boolean;
       /** Watcher options when autoWatchPolicies is enabled */
       policyWatchOptions?: PolicyWatcherOptions;
+      /** Parent policy constraints inherited by this child engine */
+      federation?: PolicyFederationConstraints | PolicyFederationPayload;
     }
   ) {
-    this.policies = policies;
+    this.localPolicies = policies;
+    this.federationConstraints = options?.federation
+      ? PolicyFederation.extractConstraints(options.federation)
+      : undefined;
+    this.policies = this.federationConstraints
+      ? PolicyFederation.mergePolicies(this.localPolicies, this.federationConstraints)
+      : this.localPolicies;
     if (options?.policySource) {
       this.policySource = options.policySource;
     }
@@ -268,6 +287,11 @@ export class TealEngine {
         cacheHit: false,
         engine: `TealEngine v${TealEngine.VERSION}`,
         policyVersion,
+        ...(this.federationConstraints && {
+          federation: {
+            constraints: this.federationConstraints,
+          },
+        }),
       },
     };
 
@@ -743,6 +767,22 @@ export class TealEngine {
   }
 
   /**
+   * Gets the local policy before inherited federation constraints are applied.
+   */
+  public getLocalPolicies(): Readonly<TealPolicy> {
+    return Object.freeze({ ...this.localPolicies });
+  }
+
+  /**
+   * Gets inherited federation constraints, if any.
+   */
+  public getFederatedConstraints(): Readonly<PolicyFederationConstraints> | undefined {
+    return this.federationConstraints
+      ? Object.freeze({ ...this.federationConstraints })
+      : undefined;
+  }
+
+  /**
    * Gets the current mode configuration
    * 
    * @returns Current mode configuration
@@ -767,7 +807,7 @@ export class TealEngine {
    *   }
    * });
    * ```
-   */
+  */
   public updatePolicies(policies: TealPolicy): void {
     const result = this.applyPolicyReload(policies);
 
@@ -780,7 +820,10 @@ export class TealEngine {
     policies: TealPolicy,
     source?: PolicySourceDescriptor
   ): PolicyReloadResult {
-    const validation = this.validator.validate(policies);
+    const nextPolicies = this.federationConstraints
+      ? PolicyFederation.mergePolicies(policies, this.federationConstraints)
+      : policies;
+    const validation = this.validator.validate(nextPolicies);
 
     if (!validation.valid) {
       const errorMessages = validation.errors.map(e => e.message).join(', ');
@@ -792,7 +835,8 @@ export class TealEngine {
     }
 
     const previousVersion = this.policyVersion;
-    this.policies = policies;
+    this.localPolicies = policies;
+    this.policies = nextPolicies;
     this.policyVersion = previousVersion + 1;
     this.clearCache();
 
@@ -812,6 +856,24 @@ export class TealEngine {
     });
 
     return result;
+  }
+
+  /**
+   * Applies updated parent constraints to this child engine.
+   *
+   * Revocations and budget changes take effect on the next evaluation cycle.
+   */
+  public applyFederatedConstraints(
+    constraints: PolicyFederationConstraints | PolicyFederationPayload
+  ): void {
+    const previousConstraints = this.federationConstraints;
+    this.federationConstraints = PolicyFederation.extractConstraints(constraints);
+
+    const result = this.applyPolicyReload(this.localPolicies);
+    if (!result.success) {
+      this.federationConstraints = previousConstraints;
+      throw new Error(`TealEngine: Invalid federated policy configuration: ${result.error}`);
+    }
   }
 
   private createReloadFailure(

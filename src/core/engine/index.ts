@@ -35,6 +35,14 @@ export type {
   ProviderPolicySource,
   UrlPolicySource
 } from './PolicyWatcher';
+export { PolicyFederation } from './PolicyFederation';
+export type {
+  ChildContextOptions,
+  FederatedBudgetCeiling,
+  PolicyFederationConstraints,
+  PolicyFederationPayload,
+  PolicyFederationVerificationResult
+} from './PolicyFederation';
 export * from './types';
 export * from './ModeResolver';
 export { 

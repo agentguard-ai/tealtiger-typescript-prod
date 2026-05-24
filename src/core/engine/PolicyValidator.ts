@@ -551,6 +551,18 @@ export class PolicyValidator {
         });
       }
     }
+
+    if (contentPolicy.dataClassification) {
+      const allowedLevels = ['public', 'internal', 'confidential', 'restricted'];
+      if (!allowedLevels.includes(contentPolicy.dataClassification.maxLevel)) {
+        errors.push({
+          code: 'INVALID_DATA_CLASSIFICATION',
+          message: `Invalid data classification maxLevel: '${contentPolicy.dataClassification.maxLevel}'`,
+          path: `${path}.dataClassification.maxLevel`,
+          suggestion: `Use one of: ${allowedLevels.join(', ')}`,
+        });
+      }
+    }
   }
 
   /**
