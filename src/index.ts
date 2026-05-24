@@ -62,7 +62,12 @@ export {
 } from './client';
 
 // TealEngine - Core Policy Framework (v1.1.0)
-export { TealEngine } from './core/engine';
+export {
+  TealEngine,
+  PolicyReloadEventType,
+  PolicyWatcher,
+  PolicyWatcherEventType
+} from './core/engine';
 export type {
   TealPolicy,
   ToolPolicy,
@@ -76,7 +81,22 @@ export type {
   ValidationError,
   ValidationWarning,
   TestCase,
-  CoverageReport
+  CoverageReport,
+  PolicyReloadEvent,
+  PolicyReloadListener,
+  PolicyReloadResult,
+  FilePolicySource,
+  PolicyProvider,
+  PolicyProviderLoadResult,
+  PolicySource,
+  PolicySourceDescriptor,
+  PolicySourceState,
+  PolicyWatcherEvent,
+  PolicyWatcherListener,
+  PolicyWatcherLoadResult,
+  PolicyWatcherOptions,
+  ProviderPolicySource,
+  UrlPolicySource
 } from './core/engine';
 
 // Enterprise Adoption Features (v1.1.x) - P0.1, P0.2, P0.3
