@@ -10,9 +10,16 @@
 
 import type { TealEngineV12 } from '../core/engine/v1.2/TealEngineV12';
 import type { TEECRegistry } from '../core/engine/v1.2/types';
+import type { SecretFindingFull } from '../secrets/types';
+import { SARIFExporter } from '../verify/SARIFExporter';
 import { IMPLEMENTED_CONTROLS, PLANNED_CONTROLS } from './controls';
 
 const BUNDLE_VERSION = '1.2.0';
+
+export interface SecretScanArtifact {
+  uri: string;
+  findings: SecretFindingFull[];
+}
 
 export class BundleExporter {
   private readonly engine: TealEngineV12;
@@ -105,5 +112,20 @@ export class BundleExporter {
       null,
       2,
     );
+  }
+
+  /**
+   * Export file-based TealSecrets findings as Code Scanning SARIF.
+   */
+  exportSecretFindingsSARIF(sources: SecretScanArtifact[]): string {
+    return BundleExporter.exportSecretFindingsSARIF(sources);
+  }
+
+  /**
+   * Export secret findings without requiring a dashboard engine instance.
+   */
+  static exportSecretFindingsSARIF(sources: SecretScanArtifact[]): string {
+    const log = new SARIFExporter().exportSources(sources);
+    return JSON.stringify(log, null, 2);
   }
 }

@@ -6,6 +6,7 @@
 
 import { BundleExporter } from '../BundleExporter';
 import { TealEngineV12 } from '../../core/engine/v1.2/TealEngineV12';
+import { TealSecrets } from '../../secrets/TealSecrets';
 
 describe('BundleExporter', () => {
   let engine: TealEngineV12;
@@ -72,5 +73,19 @@ describe('BundleExporter', () => {
       expect(typeof result).toBe('string');
       expect(() => JSON.parse(result)).not.toThrow();
     }
+  });
+
+  it('exports TealSecrets findings as source-located SARIF', () => {
+    const findings = new TealSecrets().scan('const key = "AKIAIOSFODNN7EXAMPLE";');
+    const sarif = JSON.parse(
+      exporter.exportSecretFindingsSARIF([{ uri: 'src/config.ts', findings }]),
+    );
+
+    expect(sarif.version).toBe('2.1.0');
+    expect(sarif.runs[0].results[0].ruleId).toBe('aws-access-key-id');
+    expect(sarif.runs[0].results[0].locations[0].physicalLocation.artifactLocation.uri).toBe(
+      'src/config.ts',
+    );
+    expect(sarif.runs[0].results[0].locations[0].physicalLocation.region.startLine).toBe(1);
   });
 });

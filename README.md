@@ -255,6 +255,16 @@ const junitXml = tester.exportReport(report, 'junit');
 npx tealtiger test ./policies/*.test.json --coverage --format=junit --output=./results.xml
 ```
 
+### Secret scanning with SARIF
+
+Generate a GitHub Code Scanning-compatible SARIF report from repository source files:
+
+```bash
+npx tealtiger scan . --format sarif --output results.sarif
+```
+
+The report uses stable detector rule IDs, repository-relative source locations, and fingerprints for deduplication across runs. Upload it with `github/codeql-action/upload-sarif@v3`; see [`examples/ci/github-code-scanning-sarif.yml`](examples/ci/github-code-scanning-sarif.yml).
+
 ### Cost Tracking & Budget Management
 
 Track costs across 50+ models and enforce spending limits:

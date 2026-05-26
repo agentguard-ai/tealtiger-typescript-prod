@@ -37,6 +37,25 @@ const commonPlugins = [
   })
 ];
 
+const cliPlugins = [
+  resolve({
+    preferBuiltins: true,
+    exportConditions: ['node']
+  }),
+  commonjs(),
+  json(),
+  typescript({
+    tsconfig: './tsconfig.json',
+    compilerOptions: {
+      module: 'ESNext'
+    },
+    declaration: false,
+    declarationMap: false,
+    sourceMap: true,
+    exclude: ['**/*.test.ts', '**/__tests__/**']
+  })
+];
+
 // Terser configuration for minification
 const terserConfig = {
   compress: {
@@ -184,8 +203,30 @@ const serverlessConfig = {
   }
 };
 
+// Published command-line interface bundle.
+const cliConfig = {
+  input: 'src/cli/test.ts',
+  output: {
+    file: 'dist/cli/test.js',
+    format: 'cjs',
+    sourcemap: true,
+    exports: 'named'
+  },
+  external,
+  plugins: [
+    ...cliPlugins,
+    terser(terserConfig)
+  ],
+  treeshake: {
+    moduleSideEffects: false,
+    propertyReadSideEffects: false,
+    unknownGlobalSideEffects: false
+  }
+};
+
 export default [
   mainConfig,
   ...providerConfigs,
-  serverlessConfig
+  serverlessConfig,
+  cliConfig
 ];

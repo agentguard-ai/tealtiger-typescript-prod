@@ -74,8 +74,8 @@ describe('SARIFExporter', () => {
     const log = exporter.export(findings, {});
 
     const ruleIds = log.runs[0].tool.driver.rules.map((r) => r.id);
-    expect(ruleIds).toContain('TT-SEC-001');
-    expect(ruleIds).toContain('TT-SEC-003');
+    expect(ruleIds).toContain('aws-access-key-id');
+    expect(ruleIds).toContain('github-token');
   });
 
   it('generates stable fingerprints for identical findings', () => {
@@ -83,10 +83,37 @@ describe('SARIFExporter', () => {
     const log1 = exporter.export(findings, {});
     const log2 = exporter.export(findings, {});
 
-    const fp1 = log1.runs[0].results[0].fingerprints?.['0'];
-    const fp2 = log2.runs[0].results[0].fingerprints?.['0'];
+    const fp1 = log1.runs[0].results[0].partialFingerprints?.primaryLocationLineHash;
+    const fp2 = log2.runs[0].results[0].partialFingerprints?.primaryLocationLineHash;
     expect(fp1).toBeDefined();
     expect(fp1).toBe(fp2);
+  });
+
+  it('exports detector metadata and file regions for code scanning', () => {
+    const log = exporter.exportSources([
+      {
+        uri: 'src/config.ts',
+        findings: [
+          {
+            ...makeFinding(),
+            location: { line: 3, column: 7, length: 20 },
+          },
+        ],
+      },
+    ]);
+
+    const rule = log.runs[0].tool.driver.rules[0];
+    const result = log.runs[0].results[0];
+
+    expect(rule.id).toBe('aws-access-key-id');
+    expect(rule.shortDescription.text).toBe('AWS Access Key ID');
+    expect(rule.helpUri).toContain('tealtiger.ai/docs/v1.2');
+    expect(rule.properties?.['security-severity']).toBe('9.0');
+    expect(result.locations?.[0].physicalLocation).toEqual({
+      artifactLocation: { uri: 'src/config.ts', uriBaseId: '%SRCROOT%' },
+      region: { startLine: 3, startColumn: 7, endColumn: 27 },
+    });
+    expect(result.partialFingerprints?.primaryLocationLineHash).toBe('abc123');
   });
 
   it('does not contain raw secret values', () => {
