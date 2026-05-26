@@ -39,6 +39,7 @@ import {
 import { getComponentVersions, getPackageVersion } from '../utils/version';
 import { ExecutionContext } from '../context/ExecutionContext';
 import { ContextManager } from '../context/ContextManager';
+import type { TealSpanLike, TealTelemetry } from '../../observability/TealOTelPlugin';
 
 export const PolicyReloadEventType = {
   POLICY_RELOADED: 'POLICY_RELOADED',
@@ -128,6 +129,9 @@ export class TealEngine {
   /** Component versions */
   private componentVersions: ComponentVersions;
 
+  /** Optional OpenTelemetry integration */
+  private readonly telemetry: TealTelemetry | undefined;
+
   /**
    * Creates a new TealEngine instance
    * 
@@ -165,9 +169,12 @@ export class TealEngine {
       autoWatchPolicies?: boolean;
       /** Watcher options when autoWatchPolicies is enabled */
       policyWatchOptions?: PolicyWatcherOptions;
+      /** Optional OpenTelemetry span exporter */
+      telemetry?: TealTelemetry;
     }
   ) {
     this.policies = policies;
+    this.telemetry = options?.telemetry;
     if (options?.policySource) {
       this.policySource = options.policySource;
     }
@@ -306,6 +313,11 @@ export class TealEngine {
 
     // Ensure we have an execution context with correlation_id
     const execContext = executionContext || ContextManager.createContext();
+    const evaluationSpan = this.telemetry?.startSpan(
+      'tealtiger.governance.evaluate',
+      { 'policy.engine': 'TealEngine' },
+      execContext,
+    );
 
     // Resolve the effective mode for this policy
     const policyId = this.getPolicyIdFromContext(context);
@@ -351,7 +363,7 @@ export class TealEngine {
         metadata
       };
 
-      return decision;
+      return this.endEvaluationSpan(evaluationSpan, decision);
     }
 
     // Evaluate policies using PolicyEvaluator
@@ -400,7 +412,7 @@ export class TealEngine {
         metadata
       };
 
-      return decision;
+      return this.endEvaluationSpan(evaluationSpan, decision);
     }
 
     // ENFORCE mode: Block violations, allow compliant requests
@@ -440,11 +452,23 @@ export class TealEngine {
         metadata
       };
 
-      return decision;
+      return this.endEvaluationSpan(evaluationSpan, decision);
     }
 
     // Fallback (should never reach here due to mode validation)
-    throw new InvalidConfigurationError(formatInvalidPolicyModeMessage(effectiveMode));
+    const error = new InvalidConfigurationError(formatInvalidPolicyModeMessage(effectiveMode));
+    this.telemetry?.failSpan(evaluationSpan, error);
+    throw error;
+  }
+
+  private endEvaluationSpan(span: TealSpanLike | undefined, decision: Decision): Decision {
+    this.telemetry?.endSpan(span, {
+      'decision.action': decision.action,
+      'decision.risk_score': decision.risk_score,
+      reason_codes: decision.reason_codes,
+      'policy.version': decision.policy_version,
+    });
+    return decision;
   }
 
   /**

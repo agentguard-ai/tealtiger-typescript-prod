@@ -109,6 +109,7 @@ export class ModuleRegistry {
       monitor: 'tealmonitor',
       audit: 'tealaudit',
       guard: 'tealguard',
+      telemetry: 'tealotel',
     };
 
     for (const key of Object.keys(policy)) {
