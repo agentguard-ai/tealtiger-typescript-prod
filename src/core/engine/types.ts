@@ -120,6 +120,8 @@ export interface MemoryPolicy {
  * Content Policy Configuration
  * Controls content filtering and moderation
  */
+export type DataClassificationLevel = 'public' | 'internal' | 'confidential' | 'restricted';
+
 export interface ContentPolicy {
   /** PII detection configuration */
   pii?: {
@@ -138,6 +140,11 @@ export interface ContentPolicy {
     threshold?: number;
     /** Categories to moderate (e.g., 'hate', 'violence', 'sexual') */
     categories?: string[];
+  };
+  /** Data classification ceiling for federated child agents */
+  dataClassification?: {
+    /** Maximum classification level this policy may access */
+    maxLevel: DataClassificationLevel;
   };
 }
 
