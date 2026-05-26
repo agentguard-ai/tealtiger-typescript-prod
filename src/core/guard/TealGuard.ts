@@ -17,6 +17,7 @@ import { DecisionAction, ReasonCode, PolicyMode } from '../engine/types';
 import { ExecutionContext } from '../context/ExecutionContext';
 import { ContextManager } from '../context/ContextManager';
 import { getComponentVersionsWithGuard } from '../utils/version';
+import type { TealSpanLike, TealTelemetry } from '../../observability/TealOTelPlugin';
 import {
   GuardrailEngine,
   GuardrailEngineOptions,
@@ -48,6 +49,8 @@ export interface TealGuardConfig {
   cacheTTL?: number;
   /** Maximum cache size (default: 1000) */
   cacheMaxSize?: number;
+  /** Optional OpenTelemetry span exporter */
+  telemetry?: TealTelemetry;
 }
 
 /**
@@ -137,7 +140,10 @@ export class TealGuard {
 
     // Initialize TealEngine if policy provided
     if (config.policy && !config.engine) {
-      this.engine = new TealEngine(config.policy);
+      this.engine = new TealEngine(
+        config.policy,
+        config.telemetry ? { telemetry: config.telemetry } : undefined,
+      );
     } else if (config.engine) {
       this.engine = config.engine;
     }
@@ -185,6 +191,11 @@ export class TealGuard {
 
     // Ensure we have a valid ExecutionContext
     const executionContext = context || ContextManager.createContext();
+    const guardrailSpan = this.config.telemetry?.startSpan(
+      'tealtiger.guardrail.check',
+      { 'guardrail.cache_enabled': this.enableCache },
+      executionContext,
+    );
 
     // Check cache first (using correlation_id as part of cache key)
     if (this.enableCache) {
@@ -210,14 +221,20 @@ export class TealGuard {
         if (executionContext.span_id) updatedDecision.span_id = executionContext.span_id;
         if (executionContext.parent_span_id) updatedDecision.parent_span_id = executionContext.parent_span_id;
         
-        return updatedDecision;
+        return this.endCheckSpan(guardrailSpan, updatedDecision);
       }
     }
 
     // Execute guardrails (parallel execution handled by GuardrailEngine)
-    const guardrailResults = await this.guardrailEngine.execute(input, {
-      correlation_id: executionContext.correlation_id
-    });
+    let guardrailResults: GuardrailEngineResult;
+    try {
+      guardrailResults = await this.guardrailEngine.execute(input, {
+        correlation_id: executionContext.correlation_id
+      });
+    } catch (error) {
+      this.config.telemetry?.failSpan(guardrailSpan, error);
+      throw error;
+    }
 
     // Evaluate policy if policy-driven mode is enabled
     let policyDecision: Decision | undefined;
@@ -235,7 +252,12 @@ export class TealGuard {
         }
       };
 
-      policyDecision = this.engine.evaluateWithMode(requestContext, executionContext);
+      try {
+        policyDecision = this.engine.evaluateWithMode(requestContext, executionContext);
+      } catch (error) {
+        this.config.telemetry?.failSpan(guardrailSpan, error);
+        throw error;
+      }
     }
 
     const executionTime = Date.now() - startTime;
@@ -258,6 +280,15 @@ export class TealGuard {
       this.addToCache(cacheKey, decision);
     }
 
+    return this.endCheckSpan(guardrailSpan, decision);
+  }
+
+  private endCheckSpan(span: TealSpanLike | undefined, decision: Decision): Decision {
+    this.config.telemetry?.endSpan(span, {
+      'decision.action': decision.action,
+      'decision.risk_score': decision.risk_score,
+      reason_codes: decision.reason_codes,
+    });
     return decision;
   }
 

@@ -46,3 +46,11 @@ export { ModuleRegistry } from './ModuleRegistry';
 // v1.2 Orchestration Engine
 export { TealEngineV12 } from './TealEngineV12';
 export type { TealEngineV12Options, FailurePolicyConfig } from './TealEngineV12';
+
+// Optional OpenTelemetry export module
+export { TealOTelPlugin } from '../../../observability/TealOTelPlugin';
+export type {
+  TealOTelPluginOptions,
+  TealTelemetry,
+  TealTracerLike,
+} from '../../../observability/TealOTelPlugin';
