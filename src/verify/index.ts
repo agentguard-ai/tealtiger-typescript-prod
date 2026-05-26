@@ -24,6 +24,8 @@ export type {
   SARIFResult,
   SARIFLocation,
   SARIFExportOptions,
+  SARIFSecretFinding,
+  SARIFSecretSource,
   GoldenTestCase,
   GoldenTestResult,
   GoldenTestReport,
