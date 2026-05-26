@@ -2,63 +2,26 @@
  * TealVerify — SARIF v2.1.0 Exporter
  *
  * Generates SARIF v2.1.0 JSON from SecretFinding arrays.
- * Secrets are redacted by default. Fingerprints are stable
- * (SHA-256 of type + finding_id).
+ * Secrets are redacted by default. Secret scans preserve their
+ * source locations and detector fingerprints for Code Scanning.
  *
  * @module verify/SARIFExporter
  */
 
 import type { SecretFinding } from '../core/engine/v1.2/types';
+import { builtInDetectors } from '../secrets/detectors';
 import type {
   SARIFLog,
   SARIFRun,
   SARIFRule,
   SARIFResult,
   SARIFExportOptions,
+  SARIFSecretFinding,
+  SARIFSecretSource,
 } from './types';
 
 const SARIF_SCHEMA =
   'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json';
-
-/** Map secret type strings to stable rule IDs. */
-const RULE_ID_MAP: Record<string, string> = {
-  'aws-access-key-id': 'TT-SEC-001',
-  'aws-secret-access-key': 'TT-SEC-002',
-  'github-token': 'TT-SEC-003',
-  'github-pat': 'TT-SEC-004',
-  'openai-api-key': 'TT-SEC-005',
-  'anthropic-api-key': 'TT-SEC-006',
-  'google-api-key': 'TT-SEC-007',
-  'azure-key': 'TT-SEC-008',
-  'stripe-key': 'TT-SEC-009',
-  'database-url': 'TT-SEC-010',
-  'jwt-token': 'TT-SEC-011',
-  'ssh-private-key': 'TT-SEC-012',
-  'slack-token': 'TT-SEC-013',
-  'generic-api-key': 'TT-SEC-014',
-  'generic-secret': 'TT-SEC-015',
-};
-
-/** Deterministic rule ID for a secret type. */
-function ruleIdFor(secretType: string): string {
-  return RULE_ID_MAP[secretType] ?? `TT-SEC-${stableHash(secretType)}`;
-}
-
-/** Simple deterministic numeric hash for unknown types. */
-function stableHash(input: string): string {
-  let h = 0;
-  for (let i = 0; i < input.length; i++) {
-    h = ((h << 5) - h + input.charCodeAt(i)) | 0;
-  }
-  return String(Math.abs(h) % 10000).padStart(4, '0');
-}
-
-/** SHA-256 hex digest (sync, using Node crypto). */
-function sha256Hex(data: string): string {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const crypto = require('crypto') as typeof import('crypto');
-  return crypto.createHash('sha256').update(data).digest('hex');
-}
 
 /** Map severity string to SARIF level. */
 function severityToLevel(severity: string): 'error' | 'warning' | 'note' {
@@ -66,6 +29,35 @@ function severityToLevel(severity: string): 'error' | 'warning' | 'note' {
   if (s === 'CRITICAL' || s === 'HIGH') return 'error';
   if (s === 'MEDIUM') return 'warning';
   return 'note';
+}
+
+function severityToSecurityScore(severity: string): string {
+  switch (severity.toUpperCase()) {
+    case 'CRITICAL': return '9.0';
+    case 'HIGH': return '7.0';
+    case 'MEDIUM': return '5.0';
+    case 'LOW': return '3.0';
+    default: return '1.0';
+  }
+}
+
+function ruleFor(finding: SARIFSecretFinding): SARIFRule {
+  const detector = builtInDetectors.find((candidate) => candidate.id === finding.type);
+  const description = detector?.description ?? `Secret detector: ${finding.type}`;
+
+  return {
+    id: finding.type,
+    name: finding.type,
+    shortDescription: { text: description },
+    fullDescription: {
+      text: `TealSecrets detected a ${finding.category} credential pattern. Remove the credential from source control and rotate it if it is active.`,
+    },
+    helpUri: 'https://tealtiger.ai/docs/v1.2/secrets',
+    properties: {
+      tags: ['security', 'secrets', finding.category],
+      'security-severity': severityToSecurityScore(finding.severity),
+    },
+  };
 }
 
 export class SARIFExporter {
@@ -84,47 +76,62 @@ export class SARIFExporter {
    */
   export(
     findings: SecretFinding[],
-    _ctx: Record<string, unknown>,
+    ctx: Record<string, unknown>,
   ): SARIFLog {
+    const artifactUri =
+      typeof ctx.artifactUri === 'string' ? ctx.artifactUri : 'tealsecrets://runtime/input';
+
+    return this.exportSources([{ uri: artifactUri, findings }]);
+  }
+
+  /**
+   * Generate GitHub Code Scanning-compatible SARIF from file-based scans.
+   */
+  exportSources(sources: SARIFSecretSource[]): SARIFLog {
     const rulesMap = new Map<string, SARIFRule>();
     const results: SARIFResult[] = [];
 
-    for (const f of findings) {
-      const ruleId = ruleIdFor(f.type);
+    for (const source of sources) {
+      for (const finding of source.findings) {
+        const ruleId = finding.type;
 
-      if (!rulesMap.has(ruleId)) {
-        rulesMap.set(ruleId, {
-          id: ruleId,
-          name: f.type,
-          shortDescription: {
-            text: `Detected secret of type: ${f.type} (category: ${f.category})`,
-          },
-        });
-      }
+        if (!rulesMap.has(ruleId)) {
+          rulesMap.set(ruleId, ruleFor(finding));
+        }
 
-      // Stable fingerprint: SHA-256(type + finding_id)
-      const fingerprint = sha256Hex(`${f.type}:${f.finding_id}`);
+        const message = this.redactSecrets
+          ? `Secret detected: type=${finding.type}, severity=${finding.severity}, confidence=${finding.confidence}`
+          : `Secret detected: type=${finding.type}, severity=${finding.severity}, confidence=${finding.confidence}`;
 
-      // Build message — never include raw secret values
-      const message = this.redactSecrets
-        ? `Secret detected: type=${f.type}, severity=${f.severity}, confidence=${f.confidence}`
-        : `Secret detected: type=${f.type}, severity=${f.severity}, confidence=${f.confidence}`;
+        const artifactLocation = source.uri.startsWith('tealsecrets://')
+          ? { uri: source.uri }
+          : { uri: source.uri, uriBaseId: '%SRCROOT%' };
+        const physicalLocation = finding.location
+          ? {
+              artifactLocation,
+              region: {
+                startLine: finding.location.line,
+                startColumn: finding.location.column,
+                endColumn: finding.location.column + Math.max(finding.location.length ?? 1, 1),
+              },
+            }
+          : { artifactLocation };
 
-      const result: SARIFResult = {
-        ruleId,
-        level: severityToLevel(f.severity),
-        message: { text: message },
-        fingerprints: { '0': fingerprint },
-        locations: [
-          {
-            physicalLocation: {
-              artifactLocation: { uri: 'tealsecrets://runtime/input' },
+        const result: SARIFResult = {
+          ruleId,
+          level: severityToLevel(finding.severity),
+          message: { text: message },
+          fingerprints: { '0': finding.fingerprint },
+          partialFingerprints: { primaryLocationLineHash: finding.fingerprint },
+          locations: [
+            {
+              physicalLocation,
             },
-          },
-        ],
-      };
+          ],
+        };
 
-      results.push(result);
+        results.push(result);
+      }
     }
 
     const rules = Array.from(rulesMap.values());
@@ -134,6 +141,7 @@ export class SARIFExporter {
         driver: {
           name: this.toolName,
           version: this.toolVersion,
+          informationUri: 'https://tealtiger.ai',
           rules,
         },
       },

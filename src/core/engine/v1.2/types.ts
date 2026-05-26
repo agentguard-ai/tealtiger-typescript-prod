@@ -79,6 +79,10 @@ export interface ModuleEvaluationRequest {
 
 export interface ModuleContext {
   correlation_id: string;
+  trace_id?: string;
+  span_id?: string;
+  parent_span_id?: string;
+  baggage?: Record<string, string>;
   tenant_id?: string;
   user_id?: string;
   session_id?: string;

@@ -122,6 +122,17 @@ export {
   PolicyViolationError as EnginePolicyViolationError
 } from './core/engine/types';
 
+// TealEngine v1.2 module orchestration
+export { TealEngineV12, DecisionActionV12 } from './core/engine/v1.2';
+export type {
+  TealEngineV12Options,
+  FailurePolicyConfig,
+  TealModule,
+  ModuleContext,
+  ModuleResult,
+  Decision as DecisionV12
+} from './core/engine/v1.2';
+
 // ExecutionContext and ContextManager (P0.3)
 export { ContextManager } from './core/context/ContextManager';
 export type {
@@ -129,6 +140,18 @@ export type {
   ExecutionContextOptions
 } from './core/context/ExecutionContext';
 export { CONTEXT_HEADERS } from './core/context/ExecutionContext';
+
+// Optional OpenTelemetry export
+export { TealOTelPlugin } from './observability';
+export type {
+  TealOTelApiLike,
+  TealOTelPluginOptions,
+  TealSpanAttribute,
+  TealSpanLike,
+  TealTelemetry,
+  TealTraceContext,
+  TealTracerLike
+} from './observability';
 
 // TealGuard - Enhanced Guardrails (v1.1.0)
 export { TealGuard } from './core/guard/TealGuard';

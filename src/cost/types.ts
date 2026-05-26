@@ -5,6 +5,7 @@
  */
 
 import type { Logger } from '../utils/logger';
+import type { TealTelemetry } from '../observability/TealOTelPlugin';
 
 /**
  * Supported AI model providers
@@ -226,4 +227,6 @@ export interface CostTrackerConfig {
 
   /** Optional logger used for diagnostics */
   logger?: Logger;
+  /** Optional OpenTelemetry span exporter */
+  telemetry?: TealTelemetry;
 }
