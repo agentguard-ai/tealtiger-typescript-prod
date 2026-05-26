@@ -153,14 +153,22 @@ export class BudgetManager {
 
       // Check if adding this cost would exceed the budget
       const projectedSpending = status.currentSpending + estimatedCost;
-      const projectedPercentage = (projectedSpending / budget.limit) * 100;
+      const projectedPercentage = budget.limit > 0
+        ? (projectedSpending / budget.limit) * 100
+        : projectedSpending > 0 ? Infinity : 0;
+      const existingThresholds = new Set(this.getAlerts(budget.id).map(a => a.threshold));
 
       // Check for threshold alerts
       for (const threshold of budget.alertThresholds) {
-        if (projectedPercentage >= threshold && status.percentageUsed < threshold) {
+        if (
+          projectedPercentage >= threshold &&
+          status.percentageUsed < threshold &&
+          !existingThresholds.has(threshold)
+        ) {
           const alert = this.createAlert(budget, threshold, projectedSpending);
           alerts.push(alert);
           this.addAlert(budget.id, alert);
+          existingThresholds.add(threshold);
         }
       }
 
@@ -239,7 +247,9 @@ export class BudgetManager {
 
     const currentSpending = records.reduce((sum, r) => sum + r.actualCost, 0);
     const remaining = Math.max(0, budget.limit - currentSpending);
-    const percentageUsed = (currentSpending / budget.limit) * 100;
+    const percentageUsed = budget.limit > 0
+      ? (currentSpending / budget.limit) * 100
+      : currentSpending > 0 ? Infinity : 0;
     const isExceeded = currentSpending > budget.limit;
 
     // Get active alerts
