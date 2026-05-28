@@ -16,6 +16,12 @@
   [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
   [![v1.3.0](https://img.shields.io/badge/version-v1.3.0-teal.svg)](https://www.npmjs.com/package/tealtiger)
   [![Discord](https://img.shields.io/badge/Discord-Join%20Community-7289da?logo=discord&logoColor=white)](https://discord.gg/X2ePf8QAj)
+
+  <br>
+
+  <a href="https://www.nvidia.com/en-us/startups/">
+    <img src=".github/logo/nvidia-inception-badge.svg" alt="NVIDIA Inception Program" width="250">
+  </a>
 </div>
 
 > 📖 **[Read the introduction blog post](https://dev.to/nagasatish_chilakamarti_2/introducing-tealtiger-ai-security-cost-control-made-simple-4lma)** | 📚 **[Documentation](https://docs.tealtiger.ai)**
