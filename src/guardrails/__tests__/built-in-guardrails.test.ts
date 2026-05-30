@@ -208,6 +208,40 @@ describe('PromptInjectionGuardrail', () => {
     expect(result.metadata.detections).toHaveLength(0);
   });
 
+  it.each([
+    {
+      name: 'code comments that contain ignore',
+      input: `function parseConfig(value: string) {
+  // ignore this warning - it is a lint artifact from the generated file
+  return value.trim();
+}`,
+    },
+    {
+      name: 'technical documentation about prompt engineering',
+      input:
+        'Prompt injection is a technique where malicious content attempts to change how a model follows developer instructions.',
+    },
+    {
+      name: 'user formatting instructions that say ignore',
+      input: 'Please ignore the previous formatting and use bullet points instead.',
+    },
+    {
+      name: 'system in a technical operations context',
+      input: 'The system logs show a 404 error on /api/v1/health after the deployment.',
+    },
+    {
+      name: 'benign version-specific guidance',
+      input: 'You can ignore the previous section if you are using TypeScript 5.9 or newer.',
+    },
+  ])('should pass benign suspicious input: $name', async ({ input }) => {
+    const guardrail = new PromptInjectionGuardrail();
+    const result = await guardrail.evaluate(input);
+
+    expect(result.passed).toBe(true);
+    expect(result.action).toBe('allow');
+    expect(result.metadata.detections).toHaveLength(0);
+  });
+
   it('should respect sensitivity levels', async () => {
     const lowSensitivity = new PromptInjectionGuardrail({ sensitivity: 'low' });
     const highSensitivity = new PromptInjectionGuardrail({ sensitivity: 'high' });
