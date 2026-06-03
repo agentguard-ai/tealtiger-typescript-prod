@@ -57,3 +57,4 @@ console.log(dashboard.getSnapshot());
 
 - See [modules.md](./modules.md) for all available modules
 - See [migration.md](./migration.md) for upgrading from v1.1
+- See [opentelemetry.md](./opentelemetry.md) for decision trace export

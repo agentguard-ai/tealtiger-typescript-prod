@@ -2,18 +2,19 @@
 
 /**
  * TealTiger SDK v1.1.x - Enterprise Adoption Features
- * P0.5: Policy Test Harness - CLI Test Runner
+ * P0.5: Policy Test Harness and Secret Scan CLI
  * 
  * Command-line interface for running policy tests
  * 
  * Usage:
  *   tealtiger test <test-file> [options]
+ *   tealtiger scan <file-or-directory> [options]
  * 
  * Options:
  *   --tags <tags>         Filter tests by tags (comma-separated)
  *   --watch              Watch mode for continuous testing
  *   --coverage           Show coverage report
- *   --format <format>    Output format: json, junit (default: console)
+ *   --format <format>    Output format: json, junit, sarif (default: console)
  *   --output <path>      Output file path for report
  *   --mode <mode>        Policy mode: ENFORCE, MONITOR, REPORT_ONLY
  *   --verbose            Verbose output
@@ -24,6 +25,7 @@
  *   tealtiger test tests/policies.json --tags security,pii
  *   tealtiger test tests/policies.json --coverage --format junit --output report.xml
  *   tealtiger test tests/policies.json --watch
+ *   tealtiger scan src --format sarif --output results.sarif
  * 
  * @module cli/test
  * @version 1.1.0
@@ -32,12 +34,15 @@
 import * as fs from 'fs';
 import { TealEngine } from '../core/engine/TealEngine';
 import { PolicyMode } from '../core/engine/types';
+import { runSecretScan } from './scan';
 import type { PolicyTestSuite, PolicyTestReport, PolicyTestCase, PolicyTestResult } from '../core/testing/types';
 
 /**
  * CLI options
  */
 interface CLIOptions {
+  /** Command to execute */
+  command: 'test' | 'scan';
   /** Test file path(s) */
   files: string[];
   /** Filter by tags */
@@ -47,7 +52,7 @@ interface CLIOptions {
   /** Show coverage */
   coverage?: boolean;
   /** Output format */
-  format?: 'console' | 'json' | 'junit';
+  format?: 'console' | 'json' | 'junit' | 'sarif';
   /** Output file path */
   output?: string;
   /** Policy mode override */
@@ -78,6 +83,7 @@ const colors = {
  */
 function parseArgs(args: string[]): CLIOptions {
   const options: CLIOptions = {
+    command: 'test',
     files: [],
     format: 'console',
   };
@@ -86,6 +92,10 @@ function parseArgs(args: string[]): CLIOptions {
     const arg = args[i];
 
     switch (arg) {
+      case 'test':
+      case 'scan':
+        options.command = arg;
+        break;
       case '--tags':
         options.tags = args[++i]?.split(',').map(t => t.trim());
         break;
@@ -97,10 +107,10 @@ function parseArgs(args: string[]): CLIOptions {
         break;
       case '--format':
         const format = args[++i];
-        if (format === 'json' || format === 'junit' || format === 'console') {
+        if (format === 'json' || format === 'junit' || format === 'console' || format === 'sarif') {
           options.format = format;
         } else {
-          console.error(`${colors.red}Error: Invalid format "${format}". Use: json, junit, console${colors.reset}`);
+          console.error(`${colors.red}Error: Invalid format "${format}". Use: json, junit, sarif, console${colors.reset}`);
           process.exit(1);
         }
         break;
@@ -139,16 +149,17 @@ function parseArgs(args: string[]): CLIOptions {
  */
 function showHelp(): void {
   console.log(`
-${colors.bright}TealTiger Policy Test Runner${colors.reset}
+${colors.bright}TealTiger CLI${colors.reset}
 
 ${colors.bright}USAGE:${colors.reset}
   tealtiger test <test-file> [options]
+  tealtiger scan <file-or-directory> [options]
 
 ${colors.bright}OPTIONS:${colors.reset}
   --tags <tags>         Filter tests by tags (comma-separated)
   --watch              Watch mode for continuous testing
   --coverage           Show coverage report
-  --format <format>    Output format: json, junit (default: console)
+  --format <format>    Output format: json, junit, sarif (default: console)
   --output <path>      Output file path for report
   --mode <mode>        Policy mode: ENFORCE, MONITOR, REPORT_ONLY
   --verbose            Verbose output
@@ -169,6 +180,9 @@ ${colors.bright}EXAMPLES:${colors.reset}
 
   ${colors.dim}# Override policy mode${colors.reset}
   tealtiger test tests/policies.json --mode MONITOR
+
+  ${colors.dim}# Scan source files and upload results.sarif to Code Scanning${colors.reset}
+  tealtiger scan src --format sarif --output results.sarif
 
 ${colors.bright}TEST FILE FORMAT:${colors.reset}
   Test files should be JSON with the following structure:
@@ -635,17 +649,26 @@ function main(): void {
   
   // Validate files
   if (options.files.length === 0) {
-    console.error(`${colors.red}Error: No test files specified${colors.reset}`);
-    console.error(`Run 'tealtiger test --help' for usage information`);
+    console.error(`${colors.red}Error: No input files or directories specified${colors.reset}`);
+    console.error(`Run 'tealtiger --help' for usage information`);
     process.exit(1);
   }
   
   // Check if files exist
   for (const file of options.files) {
     if (!fs.existsSync(file)) {
-      console.error(`${colors.red}Error: Test file not found: ${file}${colors.reset}`);
+      console.error(`${colors.red}Error: Input not found: ${file}${colors.reset}`);
       process.exit(1);
     }
+  }
+
+  if (options.command === 'scan') {
+    process.exit(runSecretScan(options.files, options));
+  }
+
+  if (options.format === 'sarif') {
+    console.error(`${colors.red}Error: SARIF output is available for the scan command only${colors.reset}`);
+    process.exit(1);
   }
   
   // Watch mode

@@ -16,7 +16,14 @@ export interface SARIFLog {
 }
 
 export interface SARIFRun {
-  tool: { driver: { name: string; version: string; rules: SARIFRule[] } };
+  tool: {
+    driver: {
+      name: string;
+      version: string;
+      informationUri?: string;
+      rules: SARIFRule[];
+    };
+  };
   results: SARIFResult[];
 }
 
@@ -24,6 +31,12 @@ export interface SARIFRule {
   id: string;
   name: string;
   shortDescription: { text: string };
+  fullDescription?: { text: string };
+  helpUri?: string;
+  properties?: {
+    tags?: string[];
+    'security-severity'?: string;
+  };
 }
 
 export interface SARIFResult {
@@ -31,14 +44,34 @@ export interface SARIFResult {
   level: 'error' | 'warning' | 'note';
   message: { text: string };
   fingerprints?: Record<string, string>;
+  partialFingerprints?: Record<string, string>;
   locations?: SARIFLocation[];
 }
 
 export interface SARIFLocation {
   physicalLocation: {
-    artifactLocation: { uri: string };
-    region?: { startLine?: number; startColumn?: number };
+    artifactLocation: { uri: string; uriBaseId?: string };
+    region?: { startLine?: number; startColumn?: number; endColumn?: number };
   };
+}
+
+export interface SARIFSecretFinding {
+  finding_id: string;
+  type: string;
+  category: string;
+  confidence: number;
+  severity: string;
+  fingerprint: string;
+  location?: {
+    line: number;
+    column: number;
+    length?: number;
+  };
+}
+
+export interface SARIFSecretSource {
+  uri: string;
+  findings: SARIFSecretFinding[];
 }
 
 // ── Golden test types ────────────────────────────────────────────

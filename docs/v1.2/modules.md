@@ -28,4 +28,4 @@
 
 **GovernanceDashboard** — Read-only dashboard displaying controls, TEEC coverage, module status, and decision statistics. No runtime coupling with the engine.
 
-**BundleExporter** — Exports governance artifacts (policy, registry, TEEC registries, manifest) as JSON for pull-based consumption.
+**BundleExporter** — Exports governance artifacts (policy, registry, TEEC registries, manifest) as JSON for pull-based consumption and emits source-located TealSecrets SARIF for GitHub Code Scanning.

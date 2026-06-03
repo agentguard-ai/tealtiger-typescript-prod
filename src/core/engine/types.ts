@@ -120,6 +120,8 @@ export interface MemoryPolicy {
  * Content Policy Configuration
  * Controls content filtering and moderation
  */
+export type DataClassificationLevel = 'public' | 'internal' | 'confidential' | 'restricted';
+
 export interface ContentPolicy {
   /** PII detection configuration */
   pii?: {
@@ -138,6 +140,11 @@ export interface ContentPolicy {
     threshold?: number;
     /** Categories to moderate (e.g., 'hate', 'violence', 'sexual') */
     categories?: string[];
+  };
+  /** Data classification ceiling for federated child agents */
+  dataClassification?: {
+    /** Maximum classification level this policy may access */
+    maxLevel: DataClassificationLevel;
   };
 }
 
@@ -310,6 +317,12 @@ export enum PolicyMode {
   MONITOR = 'MONITOR',
   /** Allow all operations and log decisions without evaluating rules */
   REPORT_ONLY = 'REPORT_ONLY'
+}
+
+export const VALID_POLICY_MODES = Object.values(PolicyMode).join(', ');
+
+export function formatInvalidPolicyModeMessage(mode: unknown): string {
+  return `TealTiger: Invalid policy mode '${String(mode)}'. Valid modes: ${VALID_POLICY_MODES}`;
 }
 
 /**
@@ -672,7 +685,7 @@ export function validateDecision(decision: Decision): void {
   }
   
   if (!isValidPolicyMode(decision.mode)) {
-    throw new InvalidConfigurationError(`Invalid policy mode: ${decision.mode}`);
+    throw new InvalidConfigurationError(formatInvalidPolicyModeMessage(decision.mode));
   }
   
   if (!decision.policy_id || typeof decision.policy_id !== 'string') {
@@ -708,21 +721,21 @@ export function validateModeConfig(config: ModeConfig): void {
   }
   
   if (!isValidPolicyMode(config.default)) {
-    throw new InvalidConfigurationError(`Invalid default mode: ${config.default}`);
+    throw new InvalidConfigurationError(formatInvalidPolicyModeMessage(config.default));
   }
   
   if (config.environment) {
-    for (const [env, mode] of Object.entries(config.environment)) {
+    for (const mode of Object.values(config.environment)) {
       if (!isValidPolicyMode(mode)) {
-        throw new InvalidConfigurationError(`Invalid mode for environment '${env}': ${mode}`);
+        throw new InvalidConfigurationError(formatInvalidPolicyModeMessage(mode));
       }
     }
   }
   
   if (config.policy) {
-    for (const [policyId, mode] of Object.entries(config.policy)) {
+    for (const mode of Object.values(config.policy)) {
       if (!isValidPolicyMode(mode)) {
-        throw new InvalidConfigurationError(`Invalid mode for policy '${policyId}': ${mode}`);
+        throw new InvalidConfigurationError(formatInvalidPolicyModeMessage(mode));
       }
     }
   }

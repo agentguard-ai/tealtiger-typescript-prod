@@ -5,6 +5,7 @@
  */
 
 import { TealBaseClient, TealClientConfig, RequestContext } from './base';
+import { getModelPricing } from '../cost/pricing';
 
 /**
  * OpenAI-specific configuration
@@ -13,6 +14,7 @@ export interface TealOpenAIConfig extends TealClientConfig {
   openaiApiKey?: string; // Optional: use apiKey if not provided
   baseURL?: string;
   organization?: string;
+  enableCostTracking?: boolean;
 }
 
 /**
@@ -56,6 +58,7 @@ export interface ChatCompletionResponse {
     completion_tokens: number;
     total_tokens: number;
   };
+  cost?: number;
   metadata?: Record<string, string>; // TealTiger metadata
 }
 
@@ -91,6 +94,7 @@ export interface CompletionResponse {
     completion_tokens: number;
     total_tokens: number;
   };
+  cost?: number;
   metadata?: Record<string, string>; // TealTiger metadata
 }
 
@@ -101,12 +105,14 @@ export class TealOpenAI extends TealBaseClient {
   private openaiApiKey: string;
   private baseURL: string;
   private organization?: string;
+  private enableCostTracking: boolean;
 
   constructor(config: TealOpenAIConfig) {
     super(config);
     
     this.openaiApiKey = config.openaiApiKey || config.apiKey;
     this.baseURL = config.baseURL || 'https://api.openai.com/v1';
+    this.enableCostTracking = config.enableCostTracking !== false;
     if (config.organization) {
       this.organization = config.organization;
     }
@@ -175,15 +181,17 @@ export class TealOpenAI extends TealBaseClient {
 
     const data: any = await response.json();
     
-    // Calculate cost
-    const cost = this.calculateCost(data.model, data.usage);
+    const cost = !this.enableCostTracking
+      ? undefined
+      : this.calculateCost(data.model, data.usage);
     
     // Add TealTiger metadata
     return {
       ...data,
+      ...(cost !== undefined && { cost }),
       metadata: {
         ...this.getComponentMetadata(),
-        cost: cost.toFixed(4)
+        ...(cost !== undefined && { cost: cost.toFixed(4) })
       }
     } as ChatCompletionResponse;
   }
@@ -209,15 +217,17 @@ export class TealOpenAI extends TealBaseClient {
 
     const data: any = await response.json();
     
-    // Calculate cost
-    const cost = this.calculateCost(data.model, data.usage);
+    const cost = !this.enableCostTracking
+      ? undefined
+      : this.calculateCost(data.model, data.usage);
     
     // Add TealTiger metadata
     return {
       ...data,
+      ...(cost !== undefined && { cost }),
       metadata: {
         ...this.getComponentMetadata(),
-        cost: cost.toFixed(4)
+        ...(cost !== undefined && { cost: cost.toFixed(4) })
       }
     } as CompletionResponse;
   }
@@ -226,21 +236,22 @@ export class TealOpenAI extends TealBaseClient {
    * Calculate cost based on model and token usage
    */
   private calculateCost(model: string, usage: { prompt_tokens: number; completion_tokens: number }): number {
-    // Pricing per 1K tokens (as of 2026)
-    const pricing: Record<string, { prompt: number; completion: number }> = {
-      'gpt-4': { prompt: 0.03, completion: 0.06 },
-      'gpt-4-turbo': { prompt: 0.01, completion: 0.03 },
-      'gpt-3.5-turbo': { prompt: 0.0005, completion: 0.0015 },
-      'gpt-3.5-turbo-16k': { prompt: 0.003, completion: 0.004 }
-    };
+    const pricing = getModelPricing(model, 'openai');
 
-    // Find matching model (handle versioned models like gpt-4-0613)
-    const modelKey = Object.keys(pricing).find(key => model.startsWith(key)) || 'gpt-3.5-turbo';
-    const prices = pricing[modelKey];
+    if (!pricing) {
+      return 0;
+    }
 
-    const promptCost = (usage.prompt_tokens / 1000) * prices.prompt;
-    const completionCost = (usage.completion_tokens / 1000) * prices.completion;
+    const promptCost = (usage.prompt_tokens / 1000) * pricing.inputCostPer1K;
+    const completionCost = (usage.completion_tokens / 1000) * pricing.outputCostPer1K;
 
     return promptCost + completionCost;
   }
+}
+
+/**
+ * Create a canonical TealOpenAI client.
+ */
+export function createTealOpenAI(config: TealOpenAIConfig): TealOpenAI {
+  return new TealOpenAI(config);
 }

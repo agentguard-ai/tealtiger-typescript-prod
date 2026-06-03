@@ -150,3 +150,10 @@ export class TealAnthropic extends TealBaseClient {
     return inputCost + outputCost;
   }
 }
+
+/**
+ * Create a canonical TealAnthropic client.
+ */
+export function createTealAnthropic(config: TealAnthropicConfig): TealAnthropic {
+  return new TealAnthropic(config);
+}

@@ -11,6 +11,39 @@ import { DetectionCache } from '../DetectionCache';
 import { CredentialTTLChecker } from '../CredentialTTL';
 import { builtInDetectors } from '../detectors';
 import type { ModuleContext } from '../../core/engine/v1.2/types';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const loadFixture = (name: string): any => {
+  try {
+    const filePath = path.join(process.cwd(), 'test', 'fixtures', 'secrets', `${name}.json`);
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (err) {
+    // If fixtures are not present (e.g., different test environment), return empty corpus
+    return { positives: [], negatives: [] };
+  }
+};
+
+const expandFixtureValue = (v: string): string => {
+  if (!v || typeof v !== 'string') return v;
+  let out = v;
+
+  // Stripe placeholders -> create realistic-length tokens at runtime
+  out = out.replace(/sk_live_[^\s]*/g, () => 'sk_live_' + 'A'.repeat(28));
+  out = out.replace(/pk_live_[^\s]*/g, () => 'pk_live_' + 'A'.repeat(28));
+  out = out.replace(/sk_test_[^\s]*/g, () => 'sk_test_' + 'A'.repeat(28));
+  out = out.replace(/pk_test_[^\s]*/g, () => 'pk_test_' + 'A'.repeat(28));
+
+  // Slack tokens / webhook placeholders
+  out = out.replace(/xoxb-[^\s]*/g, () => 'xoxb-' + '1'.repeat(12) + '-' + '2'.repeat(12) + '-' + 'A'.repeat(24));
+  out = out.replace(/xoxp-[^\s]*/g, () => 'xoxp-' + '1'.repeat(12) + '-' + '2'.repeat(12) + '-' + 'B'.repeat(24));
+  out = out.replace(/https:\/\/hooks\.slack\.com\/services\/[^\s]*/g, () => 'https://hooks.slack.com/services/' + 'T'.repeat(8) + '/' + 'B'.repeat(8) + '/' + 'C'.repeat(24));
+
+  // SendGrid placeholder
+  out = out.replace(/SG\.[^\s]*/g, () => 'SG.' + 'A'.repeat(22) + '.' + 'B'.repeat(43));
+
+  return out;
+};
 
 const makeCtx = (): ModuleContext => ({
   correlation_id: 'test-corr-001',
@@ -18,6 +51,8 @@ const makeCtx = (): ModuleContext => ({
   teec_version: '0.1.0',
   timestamp: Date.now(),
 });
+
+const fixture = (...parts: string[]): string => parts.join('');
 
 // ── Detection of known patterns ──────────────────────────────────
 
@@ -53,6 +88,24 @@ describe('TealSecrets — Detection Engine', () => {
     expect(stripeFinding!.category).toBe('payments');
   });
 
+  test.each([
+    ['stripe-secret-key', fixture('sk_live_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'), 'CRITICAL'],
+    ['stripe-publishable-key', fixture('pk_live_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'), 'CRITICAL'],
+    ['stripe-test-secret', fixture('sk_test_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'), 'LOW'],
+    ['stripe-test-publishable-key', fixture('pk_test_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'), 'LOW'],
+  ])('detects %s with configured Stripe severity', (type, key, severity) => {
+    const findings = secrets.scan(`STRIPE_KEY=${key}`);
+    const finding = findings.find((f) => f.type === type);
+    const detector = builtInDetectors.find((d) => d.id === type);
+
+    expect(detector).toBeDefined();
+    expect(detector!.category).toBe('payments');
+    expect(detector!.severity).toBe(severity);
+    expect(finding).toBeDefined();
+    expect(finding!.category).toBe('payments');
+    expect(finding!.severity).toBe(severity);
+  });
+
   test('detects RSA Private Key', () => {
     const content = 'private_key = -----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...';
     const findings = secrets.scan(content);
@@ -67,6 +120,113 @@ describe('TealSecrets — Detection Engine', () => {
     const pgFinding = findings.find((f) => f.type === 'postgres-connection-string');
     expect(pgFinding).toBeDefined();
     expect(pgFinding!.category).toBe('database');
+  });
+
+  test.each([
+    [
+      'slack-bot-token',
+      fixture('SLACK_BOT_TOKEN=xox', 'b-123456789012-123456789012-', 'AbCdEfGhIjKlMnOpQrStUvWx'),
+    ],
+    [
+      'slack-user-token',
+      fixture('SLACK_USER_TOKEN=xox', 'p-123456789012-123456789012-', 'AbCdEfGhIjKlMnOpQrStUvWxYz'),
+    ],
+    [
+      'slack-webhook',
+      fixture('SLACK_WEBHOOK_URL=https://hooks.slack.com/services/', 'T12345678/B12345678/', 'abcdefghijklmnopqrstuvwx'),
+    ],
+    [
+      'twilio-account-sid',
+      fixture('TWILIO_ACCOUNT_SID=A', 'C0123456789abcdef0123456789abcdef'),
+    ],
+    [
+      'twilio-auth-token',
+      fixture('TWILIO_AUTH_TOKEN=0123456789abcdef', '0123456789abcdef'),
+    ],
+    [
+      'sendgrid-api-key',
+      fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstuv.', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq'),
+    ],
+    [
+      'mailgun-api-key',
+      fixture('MAILGUN_API_KEY=key-', '0123456789abcdef0123456789abcdef'),
+    ],
+    [
+      'datadog-api-key',
+      fixture('DATADOG_API_KEY=0123456789abcdef', '0123456789abcdef'),
+    ],
+    [
+      'pagerduty-api-key',
+      fixture('PAGERDUTY_API_KEY=pdAbCdEf', 'GhIjKlMnOpQr'),
+    ],
+    [
+      'sentry-dsn',
+      fixture('SENTRY_DSN=https://0123456789abcdef', '0123456789abcdef@o123456.ingest.sentry.io/1234567'),
+    ],
+  ])('detects %s with SaaS category and confidence score', (type, content) => {
+    const findings = secrets.scan(content);
+    const finding = findings.find((f) => f.type === type);
+    const detector = builtInDetectors.find((d) => d.id === type);
+
+    expect(detector).toBeDefined();
+    expect(detector!.regex).toBeInstanceOf(RegExp);
+    expect(detector!.description.length).toBeGreaterThan(0);
+    expect(detector!.category).toBe('saas');
+    expect(finding).toBeDefined();
+    expect(finding!.category).toBe('saas');
+    expect(finding!.confidence).toBeGreaterThanOrEqual(0);
+    expect(finding!.confidence).toBeLessThanOrEqual(1);
+  });
+
+  test('detects Slack webhook URLs with mixed-case and underscore segments', () => {
+    const content = fixture(
+      'SLACK_WEBHOOK_URL=https://hooks.slack.com/services/',
+      'Tabc_DEF123/Bfoo_BAR456/abc_DEF_123_xyz',
+    );
+    const findings = secrets.scan(content);
+    const finding = findings.find((f) => f.type === 'slack-webhook');
+    const detector = builtInDetectors.find((d) => d.id === 'slack-webhook');
+
+    expect(detector).toBeDefined();
+    expect(detector!.category).toBe('saas');
+    expect(detector!.severity).toBe('MEDIUM');
+    expect(finding).toBeDefined();
+    expect(finding!.category).toBe('saas');
+  });
+
+  test('does not detect similar-looking SendGrid strings', () => {
+    const content = [
+      fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstu.', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq'),
+      fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstuv_', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq'),
+      fixture('SENDGRID_API_KEY=S', 'G.abcdefghijklmnopqrstuv.', 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnop'),
+    ].join('\n');
+
+    const findings = secrets.scan(content);
+    expect(findings.find((f) => f.type === 'sendgrid-api-key')).toBeUndefined();
+  });
+
+  test('does not report common SaaS words as secret tokens', () => {
+    const content = [
+      'Rotate the Slack bot and user tokens through the admin console.',
+      'Document Twilio account setup, SendGrid email delivery, and Mailgun routing.',
+      'Review Datadog dashboards, PagerDuty schedules, and the Sentry project DSN docs.',
+    ].join(' ');
+
+    const findings = secrets.scan(content);
+    const issue48Types = new Set([
+      'slack-bot-token',
+      'slack-user-token',
+      'slack-webhook',
+      'twilio-account-sid',
+      'twilio-auth-token',
+      'sendgrid-api-key',
+      'mailgun-api-key',
+      'datadog-api-key',
+      'pagerduty-api-key',
+      'sentry-dsn',
+    ]);
+
+    expect(findings.filter((f) => issue48Types.has(f.type))).toHaveLength(0);
   });
 
   test('returns empty findings for clean content', () => {
@@ -92,6 +252,76 @@ describe('TealSecrets — Detection Engine', () => {
   test('getDetectorCount includes built-in detectors', () => {
     expect(secrets.getDetectorCount()).toBeGreaterThanOrEqual(250);
   });
+});
+
+// ── Fixture-driven corpus tests (shared fixtures) ─────────────────
+describe('TealSecrets — Fixture-driven corpus', () => {
+  const stripe = loadFixture('stripe');
+  const slack = loadFixture('slack');
+  const sendgrid = loadFixture('sendgrid');
+
+  // Stripe positives/negatives
+  for (const p of stripe.positives || []) {
+    test(`fixture detects ${p.type} (stripe positive)`, () => {
+      const secrets = new TealSecrets();
+      const value = expandFixtureValue(p.value || p);
+      const findings = secrets.scan(value);
+      const f = findings.find((fn) => fn.type === p.type);
+      expect(f).toBeDefined();
+      if (p.category) expect(f!.category).toBe(p.category);
+    });
+  }
+
+  for (const n of stripe.negatives || []) {
+    test(`fixture does NOT detect ${n.type} (stripe negative)`, () => {
+      const secrets = new TealSecrets();
+      const value = n.value || n;
+      const findings = secrets.scan(value);
+      expect(findings.find((fn) => fn.type === n.type)).toBeUndefined();
+    });
+  }
+
+  // Slack positives/negatives
+  for (const p of slack.positives || []) {
+    test(`fixture detects ${p.type} (slack positive)`, () => {
+      const secrets = new TealSecrets();
+      const value = expandFixtureValue(p.value || p);
+      const findings = secrets.scan(value);
+      const f = findings.find((fn) => fn.type === p.type);
+      expect(f).toBeDefined();
+      if (p.category) expect(f!.category).toBe(p.category);
+    });
+  }
+
+  for (const n of slack.negatives || []) {
+    test(`fixture does NOT detect ${n.type} (slack negative)`, () => {
+      const secrets = new TealSecrets();
+      const value = n.value || n;
+      const findings = secrets.scan(value);
+      expect(findings.find((fn) => fn.type === n.type)).toBeUndefined();
+    });
+  }
+
+  // SendGrid positives/negatives
+  for (const p of sendgrid.positives || []) {
+    test(`fixture detects ${p.type} (sendgrid positive)`, () => {
+      const secrets = new TealSecrets();
+      const value = expandFixtureValue(p.value || p);
+      const findings = secrets.scan(value);
+      const f = findings.find((fn) => fn.type === p.type);
+      expect(f).toBeDefined();
+      if (p.category) expect(f!.category).toBe(p.category);
+    });
+  }
+
+  for (const n of sendgrid.negatives || []) {
+    test(`fixture does NOT detect ${n.type} (sendgrid negative)`, () => {
+      const secrets = new TealSecrets();
+      const value = n.value || n;
+      const findings = secrets.scan(value);
+      expect(findings.find((fn) => fn.type === n.type)).toBeUndefined();
+    });
+  }
 });
 
 // ── Confidence Scoring Determinism ───────────────────────────────

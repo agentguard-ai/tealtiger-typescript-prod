@@ -15,7 +15,7 @@ export function validateConfig(config: Partial<TealTigerConfig>): void {
   // Validate API key
   if (!config.apiKey) {
     throw new TealTigerConfigError(
-      'API key is required',
+      'TealTiger: No API key provided. Set OPENAI_API_KEY environment variable or pass apiKey in config.',
       TealTigerErrorCode.MISSING_API_KEY
     );
   }

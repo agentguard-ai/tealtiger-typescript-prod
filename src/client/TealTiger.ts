@@ -18,9 +18,10 @@ import {
 } from '../types';
 import { SSAClient } from './SSAClient';
 import { Configuration } from '../config/Configuration';
-import { validateToolName, validateToolParameters, sanitizeParameters } from '../utils/validation';
+import { validateToolName, validateToolParameters } from '../utils/validation';
 import { TealTigerValidationError } from '../utils/errors';
 import { TealTigerErrorCode } from '../types';
+import { createLogger, getDefaultLogger, Logger } from '../utils/logger';
 
 /**
  * Main TealTiger SDK client class
@@ -29,10 +30,16 @@ export class TealTiger {
   private readonly config: Configuration;
   private readonly ssaClient: SSAClient;
   private readonly statistics: SDKStatistics;
+  private readonly logger: Logger;
 
   constructor(config: Partial<TealTigerConfig>) {
     this.config = new Configuration(config);
-    this.ssaClient = new SSAClient(this.config.getConfig());
+    const resolvedConfig = this.config.getConfig();
+    this.logger = createLogger({
+      sink: resolvedConfig.logger ?? getDefaultLogger(),
+      debugEnabled: true
+    });
+    this.ssaClient = new SSAClient(resolvedConfig);
     
     // Initialize statistics
     this.statistics = {
@@ -45,7 +52,7 @@ export class TealTiger {
     };
 
     if (this.config.get('debug')) {
-      console.log('[TealTiger SDK] Initialized with config:', this.config.getSafeConfig());
+      this.logger.debug('[TealTiger SDK] Initialized with config:', this.config.getSafeConfig());
     }
   }
 
@@ -75,8 +82,8 @@ export class TealTiger {
       };
 
       if (this.config.get('debug')) {
-        console.log('[TealTiger SDK] Evaluating tool:', toolName);
-        console.log('[TealTiger SDK] Parameters:', sanitizeParameters(parameters));
+        this.logger.debug('[TealTiger SDK] Evaluating tool:', toolName);
+        this.logger.debug('[TealTiger SDK] Parameters:', parameters);
       }
 
       // Evaluate security
@@ -116,7 +123,7 @@ export class TealTiger {
       this.statistics.errorCount++;
       
       if (this.config.get('debug')) {
-        console.error('[TealTiger SDK] Tool execution failed:', error);
+        this.logger.error('[TealTiger SDK] Tool execution failed:', error);
       }
 
       // Return error result
@@ -236,7 +243,7 @@ export class TealTiger {
     toolExecutor?: (toolName: string, params: ToolParameters) => Promise<T>
   ): Promise<ToolExecutionResult<T>> {
     if (this.config.get('debug')) {
-      console.log('[TealTiger SDK] Tool allowed:', decision.reason);
+      this.logger.debug('[TealTiger SDK] Tool allowed:', decision.reason);
     }
 
     let data: T | undefined;
@@ -269,7 +276,7 @@ export class TealTiger {
    */
   private handleDenyDecision<T>(decision: SecurityDecision): ToolExecutionResult<T> {
     if (this.config.get('debug')) {
-      console.log('[TealTiger SDK] Tool denied:', decision.reason);
+      this.logger.debug('[TealTiger SDK] Tool denied:', decision.reason);
     }
 
     return {
@@ -291,7 +298,7 @@ export class TealTiger {
     toolExecutor?: (toolName: string, params: ToolParameters) => Promise<T>
   ): Promise<ToolExecutionResult<T>> {
     if (this.config.get('debug')) {
-      console.log('[TealTiger SDK] Tool transformed:', decision.reason);
+      this.logger.debug('[TealTiger SDK] Tool transformed:', decision.reason);
     }
 
     if (!decision.transformedRequest) {

@@ -4,4 +4,11 @@
  * Enhanced guardrails with TealEngine integration
  */
 
-export { TealGuard, TealGuardConfig, TealGuardResult, CustomGuardrailRule } from './TealGuard';
+export {
+  TealGuard,
+  TealGuardConfig,
+  TealGuardResult,
+  CustomGuardrailRule,
+  CustomGuardrail,
+  CustomGuardrailCheckResult
+} from './TealGuard';

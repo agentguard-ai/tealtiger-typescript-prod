@@ -34,6 +34,9 @@ describe('Validation Utilities', () => {
       } as TealTigerConfig;
 
       expect(() => validateConfig(invalidConfig)).toThrow(TealTigerConfigError);
+      expect(() => validateConfig(invalidConfig)).toThrow(
+        'TealTiger: No API key provided. Set OPENAI_API_KEY environment variable or pass apiKey in config.'
+      );
     });
 
     it('should reject empty API key', () => {

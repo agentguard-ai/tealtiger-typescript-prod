@@ -28,6 +28,10 @@ import {
   PolicyMode,
   type ComponentVersions,
 } from '../types';
+import type {
+  TealSpanLike,
+  TealTelemetry,
+} from '../../../observability/TealOTelPlugin';
 
 // ── Action severity for "most restrictive wins" merge ────────────
 
@@ -107,6 +111,10 @@ export class TealEngineV12 {
       policy_version: '1.2.0',
       teec_version: '0.1.0',
       timestamp: startTime,
+      ...(ctx.trace_id !== undefined && { trace_id: ctx.trace_id }),
+      ...(ctx.span_id !== undefined && { span_id: ctx.span_id }),
+      ...(ctx.parent_span_id !== undefined && { parent_span_id: ctx.parent_span_id }),
+      ...(ctx.baggage !== undefined && { baggage: ctx.baggage }),
       ...(ctx.tenant_id !== undefined && { tenant_id: ctx.tenant_id }),
       ...(ctx.user_id !== undefined && { user_id: ctx.user_id }),
       ...(ctx.session_id !== undefined && { session_id: ctx.session_id }),
@@ -130,17 +138,34 @@ export class TealEngineV12 {
     // 3. Lazy-init modules that haven't been initialized
     for (const name of requiredModules) {
       if (!this.moduleRegistry.isInitialized(name)) {
-        await this.moduleRegistry.initModule(name, this.policy[name] ?? {});
+        await this.moduleRegistry.initModule(name, this.getModuleConfig(name));
       }
     }
+
+    const telemetry = this.getTelemetry();
+    const evaluationSpan = telemetry?.startSpan(
+      'tealtiger.governance.evaluate',
+      {
+        'policy.version': fullCtx.policy_version,
+        'modules.required': requiredModules,
+      },
+      fullCtx,
+    );
 
     // 4. Dispatch to all active modules in PARALLEL
     const modulePromises = requiredModules.map(async (name) => {
       const mod = this.moduleRegistry.get(name)!;
+      const moduleSpan = telemetry?.startSpan(
+        'tealtiger.module.evaluate',
+        { 'module.name': name, 'module.version': mod.version },
+        fullCtx,
+      );
       try {
         const result = await mod.evaluate(request, fullCtx, this.policy);
+        telemetry?.endSpan(moduleSpan, { 'decision.action': String(result.action) });
         return { name, result, error: null as Error | null };
       } catch (err) {
+        telemetry?.failSpan(moduleSpan, err);
         return { name, result: null as ModuleResult | null, error: err as Error };
       }
     });
@@ -166,7 +191,7 @@ export class TealEngineV12 {
 
     if (failedModules.length > 0 && this.failurePolicy.default === 'FAIL_CLOSED') {
       const failReasons = failedModules.map((f) => f.name).join(', ');
-      return this.buildDecision({
+      const decision = this.buildDecision({
         action: DecisionAction.DENY,
         reason_codes: [ReasonCode.POLICY_VIOLATION],
         event_type: 'governance.module_failure',
@@ -180,11 +205,12 @@ export class TealEngineV12 {
           })),
         },
       });
+      return this.endEvaluationSpan(telemetry, evaluationSpan, decision);
     }
 
     // 6. No active modules → ALLOW
     if (successModules.length === 0 && failedModules.length === 0) {
-      return this.buildDecision({
+      const decision = this.buildDecision({
         action: DecisionAction.ALLOW,
         reason_codes: [ReasonCode.POLICY_COMPLIANT],
         event_type: 'policy.evaluation',
@@ -192,6 +218,7 @@ export class TealEngineV12 {
         reason: 'No active governance modules for this request',
         startTime,
       });
+      return this.endEvaluationSpan(telemetry, evaluationSpan, decision);
     }
 
     // 7. Merge results — most restrictive action wins
@@ -221,7 +248,7 @@ export class TealEngineV12 {
       (decision.metadata as Record<string, unknown>).teec_warnings = invalid;
     }
 
-    return decision;
+    return this.endEvaluationSpan(telemetry, evaluationSpan, decision);
   }
 
   /** Get module registration/init status */
@@ -237,6 +264,41 @@ export class TealEngineV12 {
   /** Get the TEEC validator */
   getTEECValidator() {
     return this.teecValidator;
+  }
+
+  private getTelemetry(): TealTelemetry | undefined {
+    const module = this.moduleRegistry.get('tealotel') as
+      | (TealModule & Partial<TealTelemetry>)
+      | undefined;
+    if (
+      module &&
+      typeof module.startSpan === 'function' &&
+      typeof module.endSpan === 'function' &&
+      typeof module.failSpan === 'function'
+    ) {
+      return module as TealModule & TealTelemetry;
+    }
+    return undefined;
+  }
+
+  private getModuleConfig(name: string): unknown {
+    if (name === 'tealotel') {
+      return this.policy.telemetry ?? this.policy[name] ?? {};
+    }
+    return this.policy[name] ?? {};
+  }
+
+  private endEvaluationSpan(
+    telemetry: TealTelemetry | undefined,
+    span: TealSpanLike | undefined,
+    decision: Decision,
+  ): Decision {
+    telemetry?.endSpan(span, {
+      'decision.action': decision.action,
+      'decision.risk_score': decision.risk_score,
+      reason_codes: decision.reason_codes,
+    });
+    return decision;
   }
 
   // ── Merge Logic ──────────────────────────────────────────────

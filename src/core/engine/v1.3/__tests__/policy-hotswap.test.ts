@@ -343,6 +343,18 @@ describe('PolicyHotSwapManager — Bundle Integrity Hash Verification', () => {
     expect(validation.errors.some((e) => e.includes('Integrity hash mismatch'))).toBe(true);
   });
 
+  it('rejects empty policy bundle with actionable message', () => {
+    const manager = new PolicyHotSwapManager();
+    const bundle = createValidBundleWithHash({ policies: [] });
+
+    const validation = manager.validateBundle(bundle);
+
+    expect(validation.valid).toBe(false);
+    expect(validation.errors).toContain(
+      'TealTiger: Policy bundle is empty. At least one policy rule is required.'
+    );
+  });
+
   it('rejects bundle with invalid signature (too short)', () => {
     const manager = new PolicyHotSwapManager();
     const bundle = createValidBundleWithHash({ signature: 'short' });

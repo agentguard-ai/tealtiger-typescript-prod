@@ -44,6 +44,7 @@ import {
   validateAuditEvent 
 } from './types';
 import { ExecutionContext } from '../context/ExecutionContext';
+import { createLogger, getDefaultLogger, Logger, redactLogValue } from '../../utils/logger';
 
 /**
  * Audit event representing a logged action (legacy)
@@ -164,14 +165,19 @@ export interface TealAuditConfig {
   
   /** Audit configuration with redaction support (P0.4) */
   config?: AuditConfig;
+
+  /** Optional logger used for audit diagnostics */
+  logger?: Logger;
 }
 
 /**
  * Console output for audit events
  */
 export class ConsoleOutput implements AuditOutput {
+  constructor(private readonly logger: Logger = getDefaultLogger()) {}
+
   write(event: AuditEvent): void {
-    console.log(JSON.stringify(event));
+    this.logger.info(JSON.stringify(redactLogValue(event)));
   }
 }
 
@@ -198,11 +204,16 @@ export class TealAudit {
   private maxEvents: number;
   private enableStorage: boolean;
   private config: AuditConfig;
+  private logger: Logger;
 
   constructor(config: TealAuditConfig) {
     this.outputs = config.outputs;
     this.maxEvents = config.maxEvents || 10000;
     this.enableStorage = config.enableStorage !== false;
+    this.logger = createLogger({
+      sink: config.logger ?? getDefaultLogger(),
+      debugEnabled: true,
+    });
     
     // Initialize audit config with security-by-default settings
     this.config = {
@@ -215,7 +226,7 @@ export class TealAudit {
     
     // Log warning if debug mode is enabled (Requirement 11.5)
     if (this.config.debug_mode) {
-      console.warn(
+      this.logger.warn(
         '⚠️  TealAudit: DEBUG MODE ENABLED - Raw content will be logged. ' +
         'This is DANGEROUS in production and may expose sensitive data. ' +
         'Disable debug_mode for production use.'
@@ -340,7 +351,7 @@ export class TealAudit {
         // Process the event with redaction and context propagation
         processedEvent = this.processVersionedEvent(event as VersionedAuditEvent, context);
       } catch (error) {
-        console.error('TealAudit: Failed to validate or process versioned event:', error);
+        this.logger.error('TealAudit: Failed to validate or process versioned event:', error);
         // Continue with original event (non-blocking, Requirement 13.5)
       }
     }
@@ -350,7 +361,7 @@ export class TealAudit {
       try {
         output.write(processedEvent as AuditEvent);
       } catch (error) {
-        console.error('TealAudit: Failed to write to output:', error);
+        this.logger.error('TealAudit: Failed to write to output:', error);
       }
     }
 
@@ -546,7 +557,7 @@ export class TealAudit {
         try {
           output.close();
         } catch (error) {
-          console.error('TealAudit: Failed to close output:', error);
+          this.logger.error('TealAudit: Failed to close output:', error);
         }
       }
     }

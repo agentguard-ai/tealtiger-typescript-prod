@@ -6,11 +6,14 @@
  */
 
 import { Guardrail, GuardrailResult } from './base';
+import { createLogger, getDefaultLogger, Logger } from '../utils/logger';
 
 export interface GuardrailEngineOptions {
   parallelExecution?: boolean;
   continueOnError?: boolean;
   timeout?: number;
+  debug?: boolean;
+  logger?: Logger;
 }
 
 export interface GuardrailExecutionResult {
@@ -78,13 +81,21 @@ export class GuardrailEngineResult {
 export class GuardrailEngine {
   private guardrails: Guardrail[] = [];
   private options: Required<GuardrailEngineOptions>;
+  private logger: Logger;
 
   constructor(options: GuardrailEngineOptions = {}) {
     this.options = {
       parallelExecution: options.parallelExecution !== undefined ? options.parallelExecution : true,
       continueOnError: options.continueOnError !== undefined ? options.continueOnError : true,
       timeout: options.timeout || 5000,
+      debug: options.debug !== undefined ? options.debug : false,
+      logger: options.logger ?? getDefaultLogger(),
     };
+
+    this.logger = createLogger({
+      sink: this.options.logger,
+      debugEnabled: this.options.debug,
+    });
   }
 
   registerGuardrail(guardrail: Guardrail): void {
@@ -93,14 +104,14 @@ export class GuardrailEngine {
     }
 
     this.guardrails.push(guardrail);
-    console.log(`[GuardrailEngine] Registered guardrail: ${guardrail.name}`);
+    this.logger.debug(`[GuardrailEngine] Registered guardrail: ${guardrail.name}`);
   }
 
   unregisterGuardrail(name: string): void {
     const index = this.guardrails.findIndex((g) => g.name === name);
     if (index !== -1) {
       this.guardrails.splice(index, 1);
-      console.log(`[GuardrailEngine] Unregistered guardrail: ${name}`);
+      this.logger.debug(`[GuardrailEngine] Unregistered guardrail: ${name}`);
     }
   }
 
@@ -200,7 +211,7 @@ export class GuardrailEngine {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`[GuardrailEngine] Error executing ${guardrailName}:`, errorMessage);
+      this.logger.error(`[GuardrailEngine] Error executing ${guardrailName}:`, errorMessage);
 
       if (this.options.continueOnError) {
         return {
@@ -226,6 +237,6 @@ export class GuardrailEngine {
 
   clearGuardrails(): void {
     this.guardrails = [];
-    console.log('[GuardrailEngine] Cleared all guardrails');
+    this.logger.debug('[GuardrailEngine] Cleared all guardrails');
   }
 }

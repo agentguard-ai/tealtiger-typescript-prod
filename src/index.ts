@@ -4,12 +4,55 @@
  * This is the main entry point for the TealTiger SDK
  */
 
-// Main SDK class (legacy)
-export { TealTiger } from './client/TealTiger';
-
-// Integrated Clients (v1.1.0)
-export { TealBaseClient, TealOpenAI, TealAnthropic } from './client';
-export type { TealClientConfig, RequestContext } from './client';
+// Canonical SDK clients
+export {
+  TealTiger,
+  SSAClient,
+  TealBaseClient,
+  TealOpenAI,
+  createTealOpenAI,
+  TealAnthropic,
+  createTealAnthropic,
+  TealGemini,
+  TealBedrock,
+  TealAzureOpenAI,
+  createTealAzureOpenAI,
+  TealMistral,
+  TealCohere
+} from './client';
+export type {
+  TealClientConfig,
+  RequestContext,
+  TealOpenAIConfig,
+  ChatMessage,
+  ChatCompletionParams,
+  ChatCompletionResponse,
+  CompletionParams,
+  CompletionResponse,
+  TealAnthropicConfig,
+  AnthropicMessage,
+  MessagesParams,
+  MessagesResponse,
+  GenerationConfig,
+  GenerateContentParams,
+  GenerateContentResponse,
+  TealGeminiConfig,
+  BedrockProvider,
+  InvokeModelParams,
+  InvokeModelResponse,
+  TealBedrockConfig,
+  TealAzureOpenAIConfig,
+  TealMistralConfig,
+  CohereChatMessage,
+  CohereDocument,
+  CohereConnector,
+  CohereChatParams,
+  CohereCitation,
+  CohereChatResponse,
+  CohereEmbedParams,
+  CohereEmbedResponse,
+  TealCohereConfig
+} from './client';
 export {
   TealTigerError,
   PolicyViolationError,
@@ -19,7 +62,13 @@ export {
 } from './client';
 
 // TealEngine - Core Policy Framework (v1.1.0)
-export { TealEngine } from './core/engine';
+export {
+  TealEngine,
+  PolicyReloadEventType,
+  PolicyWatcher,
+  PolicyWatcherEventType,
+  PolicyFederation
+} from './core/engine';
 export type {
   TealPolicy,
   ToolPolicy,
@@ -28,12 +77,33 @@ export type {
   BehavioralPolicy,
   MemoryPolicy,
   ContentPolicy,
+  DataClassificationLevel,
   PolicyEvaluationResult,
   ValidationResult,
   ValidationError,
   ValidationWarning,
   TestCase,
-  CoverageReport
+  CoverageReport,
+  PolicyReloadEvent,
+  PolicyReloadListener,
+  PolicyReloadResult,
+  FilePolicySource,
+  PolicyProvider,
+  PolicyProviderLoadResult,
+  PolicySource,
+  PolicySourceDescriptor,
+  PolicySourceState,
+  PolicyWatcherEvent,
+  PolicyWatcherListener,
+  PolicyWatcherLoadResult,
+  PolicyWatcherOptions,
+  ProviderPolicySource,
+  UrlPolicySource,
+  ChildContextOptions,
+  FederatedBudgetCeiling,
+  PolicyFederationConstraints,
+  PolicyFederationPayload,
+  PolicyFederationVerificationResult
 } from './core/engine';
 
 // Enterprise Adoption Features (v1.1.x) - P0.1, P0.2, P0.3
@@ -52,6 +122,17 @@ export {
   PolicyViolationError as EnginePolicyViolationError
 } from './core/engine/types';
 
+// TealEngine v1.2 module orchestration
+export { TealEngineV12, DecisionActionV12 } from './core/engine/v1.2';
+export type {
+  TealEngineV12Options,
+  FailurePolicyConfig,
+  TealModule,
+  ModuleContext,
+  ModuleResult,
+  Decision as DecisionV12
+} from './core/engine/v1.2';
+
 // ExecutionContext and ContextManager (P0.3)
 export { ContextManager } from './core/context/ContextManager';
 export type {
@@ -60,12 +141,26 @@ export type {
 } from './core/context/ExecutionContext';
 export { CONTEXT_HEADERS } from './core/context/ExecutionContext';
 
+// Optional OpenTelemetry export
+export { TealOTelPlugin } from './observability';
+export type {
+  TealOTelApiLike,
+  TealOTelPluginOptions,
+  TealSpanAttribute,
+  TealSpanLike,
+  TealTelemetry,
+  TealTraceContext,
+  TealTracerLike
+} from './observability';
+
 // TealGuard - Enhanced Guardrails (v1.1.0)
 export { TealGuard } from './core/guard/TealGuard';
 export type {
   TealGuardConfig,
   TealGuardResult,
-  CustomGuardrailRule
+  CustomGuardrailRule,
+  CustomGuardrail,
+  CustomGuardrailCheckResult
 } from './core/guard/TealGuard';
 
 // TealCircuit - Circuit Breaker (v1.1.0)
@@ -182,6 +277,17 @@ export {
   sanitizeConfig
 } from './utils/validation';
 
+export {
+  createLogger,
+  getDefaultLogger,
+  redactLogValue,
+  setDefaultLogger
+} from './utils/logger';
+
+export type {
+  Logger
+} from './utils/logger';
+
 // Configuration
 export { Configuration, DEFAULT_CONFIG } from './config/Configuration';
 
@@ -196,6 +302,13 @@ export {
   GuardrailEngineResult,
   GuardrailEngineOptions,
   GuardrailExecutionResult,
+  StreamingGuardrailEvaluator,
+  StreamingGuardrailEvaluatorOptions,
+  StreamingGuardrailEvent,
+  StreamingGuardrailChunkEvent,
+  StreamingGuardrailEvaluationEvent,
+  StreamingGuardrailTerminationEvent,
+  StreamingGuardrailDoneEvent,
   PIIDetectionGuardrail,
   PIIDetectionConfig,
   ContentModerationGuardrail,
@@ -230,27 +343,6 @@ export type {
 export type {
   BudgetEnforcementResult
 } from './cost/BudgetManager';
-
-// Drop-in Client Wrappers (legacy - use TealOpenAI/TealAnthropic from './client' instead)
-export {
-  createTealOpenAI,
-  createTealAnthropic,
-  TealAzureOpenAI,
-  createTealAzureOpenAI
-} from './clients';
-
-export type {
-  TealOpenAIConfig,
-  ChatCompletionRequest,
-  ChatCompletionResponse,
-  TealAnthropicConfig,
-  MessageCreateRequest,
-  MessageCreateResponse,
-  MessageContent,
-  TealAzureOpenAIConfig,
-  AzureChatCompletionRequest,
-  AzureChatCompletionResponse
-} from './clients';
 
 // Version
 export const VERSION = '0.2.2';

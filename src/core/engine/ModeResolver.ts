@@ -13,7 +13,8 @@ import {
   ModeConfig, 
   InvalidConfigurationError,
   isValidPolicyMode,
-  validateModeConfig
+  validateModeConfig,
+  formatInvalidPolicyModeMessage
 } from './types';
 
 /**
@@ -77,7 +78,7 @@ export class ModeResolver {
       
       if (!isValidPolicyMode(mode)) {
         throw new InvalidConfigurationError(
-          `Invalid policy-specific mode for policy '${context.policyId}': ${mode}`
+          formatInvalidPolicyModeMessage(mode)
         );
       }
       
@@ -96,7 +97,7 @@ export class ModeResolver {
       
       if (!isValidPolicyMode(mode)) {
         throw new InvalidConfigurationError(
-          `Invalid environment-specific mode for environment '${context.environment}': ${mode}`
+          formatInvalidPolicyModeMessage(mode)
         );
       }
       
@@ -113,7 +114,7 @@ export class ModeResolver {
     
     if (!isValidPolicyMode(mode)) {
       throw new InvalidConfigurationError(
-        `Invalid default mode: ${mode}`
+        formatInvalidPolicyModeMessage(mode)
       );
     }
     
@@ -137,10 +138,10 @@ export class ModeResolver {
     
     // Additional validation: check that all policy-specific modes are valid
     if (config.policy) {
-      for (const [policyId, mode] of Object.entries(config.policy)) {
+      for (const mode of Object.values(config.policy)) {
         if (!isValidPolicyMode(mode)) {
           throw new InvalidConfigurationError(
-            `Invalid policy-specific mode for policy '${policyId}': ${mode}`
+            formatInvalidPolicyModeMessage(mode)
           );
         }
       }
@@ -148,10 +149,10 @@ export class ModeResolver {
     
     // Additional validation: check that all environment-specific modes are valid
     if (config.environment) {
-      for (const [env, mode] of Object.entries(config.environment)) {
+      for (const mode of Object.values(config.environment)) {
         if (!isValidPolicyMode(mode)) {
           throw new InvalidConfigurationError(
-            `Invalid environment-specific mode for environment '${env}': ${mode}`
+            formatInvalidPolicyModeMessage(mode)
           );
         }
       }
@@ -241,5 +242,6 @@ export {
   ModeConfig,
   InvalidConfigurationError,
   isValidPolicyMode,
-  validateModeConfig
+  validateModeConfig,
+  formatInvalidPolicyModeMessage
 };

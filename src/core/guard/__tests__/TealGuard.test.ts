@@ -195,6 +195,33 @@ describe('TealGuard', () => {
   });
 
   describe('3.3.2: Custom Rules', () => {
+    it('should execute function-based custom guardrails from config', async () => {
+      const guard = new TealGuard({
+        customGuardrails: [
+          {
+            name: 'medical-terms-blocker',
+            check: async (input: string) => {
+              const found = ['diagnosis', 'prescription', 'treatment']
+                .find(term => input.toLowerCase().includes(term));
+
+              return {
+                passed: !found,
+                reason: found ? `Blocked medical term: ${found}` : undefined
+              };
+            }
+          }
+        ]
+      });
+
+      let result = await guard.check('general wellness message');
+      expect(result.action).toBe(DecisionAction.ALLOW);
+
+      result = await guard.check('share the diagnosis');
+      expect(result.action).toBe(DecisionAction.DENY);
+      expect(result.reason).toContain('medical-terms-blocker');
+      expect(result.risk_score).toBeGreaterThan(0);
+    });
+
     it('should register custom guardrail rule', () => {
       const guard = new TealGuard();
 

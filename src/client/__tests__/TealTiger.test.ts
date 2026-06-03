@@ -500,5 +500,50 @@ describe('TealTiger', () => {
         'Tool is risky'
       );
     });
+
+    it('should redact sensitive parameters in debug logs', async () => {
+      const mockDecision: SecurityDecision = {
+        requestId: 'req-131',
+        agentId: 'test-agent',
+        toolName: 'test-tool',
+        action: 'allow',
+        reason: 'Tool is safe',
+        riskLevel: 'low',
+        timestamp: new Date().toISOString()
+      };
+
+      mockSSAClient.evaluateSecurity.mockResolvedValue({
+        success: true,
+        decision: mockDecision
+      });
+
+      await tealTigerInstance.executeTool(
+        'test-tool',
+        {
+          apiKey: 'sk_live_1234567890123456',
+          headers: {
+            Authorization: 'Bearer secret-token'
+          },
+          nested: {
+            token: 'xoxb-1234567890-ABCDEF'
+          }
+        },
+        undefined,
+        jest.fn()
+      );
+
+      expect(console.log).toHaveBeenCalledWith(
+        '[TealTiger SDK] Parameters:',
+        {
+          apiKey: '[REDACTED]',
+          headers: {
+            Authorization: '[REDACTED]'
+          },
+          nested: {
+            token: '[REDACTED]'
+          }
+        }
+      );
+    });
   });
 });

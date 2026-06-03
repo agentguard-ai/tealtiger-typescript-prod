@@ -140,7 +140,7 @@ export class TealSecrets implements TealModule {
         const ctxEnd = Math.min(content.length, offset + matchStr.length + 100);
         const context = content.slice(ctxStart, ctxEnd);
 
-        const { confidence, signals, severity } = this.scorer.score(matchStr, context, detector.id);
+        const { confidence, signals } = this.scorer.score(matchStr, context, detector.id);
 
         const findingId = this.generateFindingId(detector.id, matchStr);
         const fingerprint = this.generateFingerprint(detector.id, matchStr);
@@ -150,7 +150,7 @@ export class TealSecrets implements TealModule {
           type: detector.id,
           category: detector.category,
           confidence,
-          severity,
+          severity: detector.severity,
           fingerprint,
           evidence_signals: signals,
           location,

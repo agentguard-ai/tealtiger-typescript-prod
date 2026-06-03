@@ -14,6 +14,8 @@ import {
 } from './types';
 import { getModelPricing } from './pricing';
 import { generateId } from './utils';
+import { createLogger, getDefaultLogger, Logger } from '../utils/logger';
+import type { TealSpanLike } from '../observability/TealOTelPlugin';
 
 /**
  * Default configuration for cost tracker
@@ -31,10 +33,15 @@ const DEFAULT_CONFIG: CostTrackerConfig = {
 export class CostTracker {
   private config: CostTrackerConfig;
   private customPricing: Map<string, ModelPricing>;
+  private logger: Logger;
 
   constructor(config: Partial<CostTrackerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.customPricing = new Map();
+    this.logger = createLogger({
+      sink: this.config.logger ?? getDefaultLogger(),
+      debugEnabled: false,
+    });
 
     // Load custom pricing if provided
     if (config.customPricing) {
@@ -59,16 +66,27 @@ export class CostTracker {
     estimatedTokens: TokenUsage,
     provider?: ModelProvider
   ): CostEstimate {
+    const span = this.config.telemetry?.startSpan('tealtiger.cost.calculate', {
+      'cost.operation': 'estimate',
+      'model.name': model,
+      ...(provider !== undefined && { 'model.provider': provider }),
+    });
     if (!this.config.enabled) {
-      return this.createZeroCostEstimate(model, provider || 'openai', estimatedTokens);
+      return this.endEstimateSpan(
+        span,
+        this.createZeroCostEstimate(model, provider || 'openai', estimatedTokens),
+      );
     }
 
     // Get pricing (custom or default)
     const pricing = this.customPricing.get(model) || getModelPricing(model, provider);
 
     if (!pricing) {
-      console.warn(`[CostTracker] No pricing found for model: ${model}`);
-      return this.createZeroCostEstimate(model, provider || 'custom', estimatedTokens);
+      this.logger.warn(`[CostTracker] No pricing found for model: ${model}`);
+      return this.endEstimateSpan(
+        span,
+        this.createZeroCostEstimate(model, provider || 'custom', estimatedTokens),
+      );
     }
 
     // Calculate costs
@@ -83,7 +101,7 @@ export class CostTracker {
 
     const estimatedCost = inputCost + outputCost + imageCost + audioCost;
 
-    return {
+    return this.endEstimateSpan(span, {
       estimatedCost,
       model: pricing.model,
       provider: pricing.provider,
@@ -95,7 +113,7 @@ export class CostTracker {
         ...(audioCost > 0 && { audioCost }),
       },
       timestamp: new Date().toISOString(),
-    };
+    });
   }
 
   /**
@@ -116,16 +134,27 @@ export class CostTracker {
     provider?: ModelProvider,
     metadata?: Record<string, any>
   ): CostRecord {
+    const span = this.config.telemetry?.startSpan('tealtiger.cost.calculate', {
+      'cost.operation': 'actual',
+      'model.name': model,
+      ...(provider !== undefined && { 'model.provider': provider }),
+    });
     if (!this.config.enabled) {
-      return this.createZeroCostRecord(requestId, agentId, model, provider || 'openai', actualTokens);
+      return this.endRecordSpan(
+        span,
+        this.createZeroCostRecord(requestId, agentId, model, provider || 'openai', actualTokens),
+      );
     }
 
     // Get pricing (custom or default)
     const pricing = this.customPricing.get(model) || getModelPricing(model, provider);
 
     if (!pricing) {
-      console.warn(`[CostTracker] No pricing found for model: ${model}`);
-      return this.createZeroCostRecord(requestId, agentId, model, provider || 'custom', actualTokens);
+      this.logger.warn(`[CostTracker] No pricing found for model: ${model}`);
+      return this.endRecordSpan(
+        span,
+        this.createZeroCostRecord(requestId, agentId, model, provider || 'custom', actualTokens),
+      );
     }
 
     // Calculate costs
@@ -158,7 +187,7 @@ export class CostTracker {
       ...(metadata && { metadata }),
     };
 
-    return record;
+    return this.endRecordSpan(span, record);
   }
 
   /**
@@ -215,6 +244,24 @@ export class CostTracker {
    */
   getConfig(): CostTrackerConfig {
     return { ...this.config };
+  }
+
+  private endEstimateSpan(span: TealSpanLike | undefined, estimate: CostEstimate): CostEstimate {
+    this.config.telemetry?.endSpan(span, {
+      'cost.amount_usd': estimate.estimatedCost,
+      'model.name': estimate.model,
+      'model.provider': estimate.provider,
+    });
+    return estimate;
+  }
+
+  private endRecordSpan(span: TealSpanLike | undefined, record: CostRecord): CostRecord {
+    this.config.telemetry?.endSpan(span, {
+      'cost.amount_usd': record.actualCost,
+      'model.name': record.model,
+      'model.provider': record.provider,
+    });
+    return record;
   }
 
   /**

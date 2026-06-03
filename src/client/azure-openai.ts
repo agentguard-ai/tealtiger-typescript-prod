@@ -442,3 +442,10 @@ export class TealAzureOpenAI extends TealOpenAI {
     return metadata;
   }
 }
+
+/**
+ * Create a canonical TealAzureOpenAI client.
+ */
+export function createTealAzureOpenAI(config: TealAzureOpenAIConfig): TealAzureOpenAI {
+  return new TealAzureOpenAI(config);
+}

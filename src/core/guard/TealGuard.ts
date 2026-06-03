@@ -17,12 +17,14 @@ import { DecisionAction, ReasonCode, PolicyMode } from '../engine/types';
 import { ExecutionContext } from '../context/ExecutionContext';
 import { ContextManager } from '../context/ContextManager';
 import { getComponentVersionsWithGuard } from '../utils/version';
+import type { TealSpanLike, TealTelemetry } from '../../observability/TealOTelPlugin';
 import {
   GuardrailEngine,
   GuardrailEngineOptions,
   GuardrailEngineResult,
   Guardrail,
-  GuardrailResult
+  GuardrailResult,
+  GuardrailResultData
 } from '../../guardrails';
 
 /**
@@ -39,12 +41,16 @@ export interface TealGuardConfig {
   policyDriven?: boolean;
   /** Custom guardrail rules */
   customRules?: CustomGuardrailRule[];
+  /** Function-based custom guardrails */
+  customGuardrails?: CustomGuardrail[];
   /** Enable result caching */
   enableCache?: boolean;
   /** Cache TTL in milliseconds (default: 60000 = 1 minute) */
   cacheTTL?: number;
   /** Maximum cache size (default: 1000) */
   cacheMaxSize?: number;
+  /** Optional OpenTelemetry span exporter */
+  telemetry?: TealTelemetry;
 }
 
 /**
@@ -55,6 +61,24 @@ export interface CustomGuardrailRule {
   description?: string;
   enabled?: boolean;
   evaluate: (input: any, context?: Record<string, any>) => Promise<GuardrailResult> | GuardrailResult;
+}
+
+export interface CustomGuardrailCheckResult {
+  passed: boolean;
+  reason?: string | undefined;
+  action?: 'allow' | 'block' | 'redact' | 'mask' | 'transform' | undefined;
+  metadata?: Record<string, any> | undefined;
+  riskScore?: number | undefined;
+}
+
+export interface CustomGuardrail {
+  name: string;
+  description?: string;
+  enabled?: boolean;
+  check: (
+    input: any,
+    context?: Record<string, any>
+  ) => Promise<CustomGuardrailCheckResult> | CustomGuardrailCheckResult;
 }
 
 /**
@@ -116,7 +140,10 @@ export class TealGuard {
 
     // Initialize TealEngine if policy provided
     if (config.policy && !config.engine) {
-      this.engine = new TealEngine(config.policy);
+      this.engine = new TealEngine(
+        config.policy,
+        config.telemetry ? { telemetry: config.telemetry } : undefined,
+      );
     } else if (config.engine) {
       this.engine = config.engine;
     }
@@ -139,6 +166,10 @@ export class TealGuard {
     if (config.customRules) {
       config.customRules.forEach(rule => this.addCustomRule(rule));
     }
+
+    if (config.customGuardrails) {
+      config.customGuardrails.forEach(guardrail => this.addCustomGuardrail(guardrail));
+    }
   }
 
   /**
@@ -160,6 +191,11 @@ export class TealGuard {
 
     // Ensure we have a valid ExecutionContext
     const executionContext = context || ContextManager.createContext();
+    const guardrailSpan = this.config.telemetry?.startSpan(
+      'tealtiger.guardrail.check',
+      { 'guardrail.cache_enabled': this.enableCache },
+      executionContext,
+    );
 
     // Check cache first (using correlation_id as part of cache key)
     if (this.enableCache) {
@@ -185,14 +221,20 @@ export class TealGuard {
         if (executionContext.span_id) updatedDecision.span_id = executionContext.span_id;
         if (executionContext.parent_span_id) updatedDecision.parent_span_id = executionContext.parent_span_id;
         
-        return updatedDecision;
+        return this.endCheckSpan(guardrailSpan, updatedDecision);
       }
     }
 
     // Execute guardrails (parallel execution handled by GuardrailEngine)
-    const guardrailResults = await this.guardrailEngine.execute(input, {
-      correlation_id: executionContext.correlation_id
-    });
+    let guardrailResults: GuardrailEngineResult;
+    try {
+      guardrailResults = await this.guardrailEngine.execute(input, {
+        correlation_id: executionContext.correlation_id
+      });
+    } catch (error) {
+      this.config.telemetry?.failSpan(guardrailSpan, error);
+      throw error;
+    }
 
     // Evaluate policy if policy-driven mode is enabled
     let policyDecision: Decision | undefined;
@@ -210,7 +252,12 @@ export class TealGuard {
         }
       };
 
-      policyDecision = this.engine.evaluateWithMode(requestContext, executionContext);
+      try {
+        policyDecision = this.engine.evaluateWithMode(requestContext, executionContext);
+      } catch (error) {
+        this.config.telemetry?.failSpan(guardrailSpan, error);
+        throw error;
+      }
     }
 
     const executionTime = Date.now() - startTime;
@@ -233,6 +280,15 @@ export class TealGuard {
       this.addToCache(cacheKey, decision);
     }
 
+    return this.endCheckSpan(guardrailSpan, decision);
+  }
+
+  private endCheckSpan(span: TealSpanLike | undefined, decision: Decision): Decision {
+    this.config.telemetry?.endSpan(span, {
+      'decision.action': decision.action,
+      'decision.risk_score': decision.risk_score,
+      reason_codes: decision.reason_codes,
+    });
     return decision;
   }
 
@@ -258,6 +314,41 @@ export class TealGuard {
     const guardrail = new CustomGuardrailWrapper(rule);
     this.customRules.set(rule.name, rule);
     this.guardrailEngine.registerGuardrail(guardrail);
+  }
+
+  /**
+   * Add a function-based custom guardrail.
+   */
+  addCustomGuardrail(guardrail: CustomGuardrail): void {
+    const customRule: CustomGuardrailRule = {
+      name: guardrail.name,
+      evaluate: async (input: any, context?: Record<string, any>) => {
+        const result = await Promise.resolve(guardrail.check(input, context));
+
+        const resultData: GuardrailResultData = {
+          passed: result.passed,
+          action: result.action ?? (result.passed ? 'allow' : 'block'),
+          reason: result.reason ?? (result.passed ? 'Custom guardrail passed' : `Custom guardrail failed: ${guardrail.name}`),
+          riskScore: result.riskScore ?? (result.passed ? 0 : 50)
+        };
+
+        if (result.metadata !== undefined) {
+          resultData.metadata = result.metadata;
+        }
+
+        return new GuardrailResult(resultData);
+      }
+    };
+
+    if (guardrail.description !== undefined) {
+      customRule.description = guardrail.description;
+    }
+
+    if (guardrail.enabled !== undefined) {
+      customRule.enabled = guardrail.enabled;
+    }
+
+    this.addCustomRule(customRule);
   }
 
   /**

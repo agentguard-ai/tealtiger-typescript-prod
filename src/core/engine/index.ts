@@ -4,11 +4,45 @@
  * @module core/engine
  */
 
-export { TealEngine } from './TealEngine';
+export {
+  TealEngine,
+  PolicyReloadEventType
+} from './TealEngine';
+export type {
+  PolicyReloadEvent,
+  PolicyReloadListener,
+  PolicyReloadResult
+} from './TealEngine';
 export { PolicyEvaluator } from './PolicyEvaluator';
 export { PolicyCache } from './PolicyCache';
 export { PolicyValidator } from './PolicyValidator';
 export { PolicyTester } from './PolicyTester';
+export {
+  PolicyWatcher,
+  PolicyWatcherEventType
+} from './PolicyWatcher';
+export type {
+  FilePolicySource,
+  PolicyProvider,
+  PolicyProviderLoadResult,
+  PolicySource,
+  PolicySourceDescriptor,
+  PolicySourceState,
+  PolicyWatcherEvent,
+  PolicyWatcherListener,
+  PolicyWatcherLoadResult,
+  PolicyWatcherOptions,
+  ProviderPolicySource,
+  UrlPolicySource
+} from './PolicyWatcher';
+export { PolicyFederation } from './PolicyFederation';
+export type {
+  ChildContextOptions,
+  FederatedBudgetCeiling,
+  PolicyFederationConstraints,
+  PolicyFederationPayload,
+  PolicyFederationVerificationResult
+} from './PolicyFederation';
 export * from './types';
 export * from './ModeResolver';
 export { 
