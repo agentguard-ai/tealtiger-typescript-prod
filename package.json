@@ -6,7 +6,7 @@
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "tealtiger": "dist/cli/test.js"
+    "tealtiger": "dist/cli/index.js"
   },
   "exports": {
     ".": {

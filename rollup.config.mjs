@@ -4,11 +4,14 @@ import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import terser from '@rollup/plugin-terser';
 import analyzer from 'rollup-plugin-analyzer';
+import { builtinModules } from 'module';
 
 const isAnalyze = process.env.ANALYZE === 'true';
+const nodeBuiltins = builtinModules.flatMap((moduleName) => [moduleName, `node:${moduleName}`]);
 
 // External dependencies that should not be bundled
 const external = [
+  ...nodeBuiltins,
   'openai',
   '@anthropic-ai/sdk',
   '@google/generative-ai',
@@ -184,8 +187,25 @@ const serverlessConfig = {
   }
 };
 
+const cliConfig = {
+  input: 'src/cli/index.ts',
+  output: {
+    file: 'dist/cli/index.js',
+    format: 'cjs',
+    sourcemap: true,
+    exports: 'named',
+    banner: '#!/usr/bin/env node'
+  },
+  external,
+  plugins: [
+    ...commonPlugins,
+    ...(isAnalyze ? [analyzer({ summaryOnly: true, limit: 10 })] : [])
+  ]
+};
+
 export default [
   mainConfig,
   ...providerConfigs,
-  serverlessConfig
+  serverlessConfig,
+  cliConfig
 ];
