@@ -20,7 +20,12 @@ export type ProviderType =
   | 'bedrock' 
   | 'azure-openai' 
   | 'cohere' 
-  | 'mistral';
+  | 'mistral'
+  | 'groq'
+  | 'deepseek'
+  | 'together'
+  | 'hf-tgi'
+  | 'xai';
 
 /**
  * Provider client union type
@@ -363,6 +368,10 @@ export class TealMultiProvider {
       case 'openai':
       case 'azure-openai':
       case 'mistral':
+      case 'groq':
+      case 'deepseek':
+      case 'together':
+      case 'xai':
         if (method === 'chat') {
           return await client.chat.completions.create(params);
         }
@@ -389,6 +398,15 @@ export class TealMultiProvider {
       case 'cohere':
         if (method === 'chat') {
           return await client.chat(params);
+        }
+        break;
+
+      case 'hf-tgi':
+        if (method === 'chat') {
+          return await client.chat.completions.create(params);
+        }
+        if (method === 'generate') {
+          return await client.generate(params);
         }
         break;
 

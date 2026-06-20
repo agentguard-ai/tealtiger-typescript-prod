@@ -16,6 +16,7 @@ import { CostRecord } from '../cost/types';
 import { generateId } from '../cost/utils';
 import { ExecutionContext } from '../core/context/ExecutionContext';
 import { ContextManager } from '../core/context/ContextManager';
+import { postProviderJson } from './http';
 
 // ── HF TGI Pricing (Self-Hosted) ────────────────────────────────
 
@@ -233,7 +234,7 @@ export class TealHfTgi {
             outputTokens: estimatedOutputTokens,
             totalTokens: estimatedInputTokens + estimatedOutputTokens,
           },
-          'custom'
+          'hf-tgi'
         );
 
         if (this.budgetManager) {
@@ -277,7 +278,7 @@ export class TealHfTgi {
             outputTokens: response.details.generated_tokens,
             totalTokens: response.details.prefill_tokens + response.details.generated_tokens,
           },
-          'custom'
+          'hf-tgi'
         );
 
         security.costRecord = costRecord;
@@ -344,7 +345,7 @@ export class TealHfTgi {
             outputTokens: estimatedOutputTokens,
             totalTokens: estimatedInputTokens + estimatedOutputTokens,
           },
-          'custom'
+          'hf-tgi'
         );
 
         if (this.budgetManager) {
@@ -387,7 +388,7 @@ export class TealHfTgi {
             outputTokens: response.usage.completion_tokens,
             totalTokens: response.usage.total_tokens,
           },
-          'custom'
+          'hf-tgi'
         );
 
         security.costRecord = costRecord;
@@ -415,47 +416,32 @@ export class TealHfTgi {
   private async callTgiChat(
     request: HfTgiChatCompletionRequest
   ): Promise<HfTgiChatCompletionResponse> {
-    const mockResponse: HfTgiChatCompletionResponse = {
-      id: `chatcmpl-${generateId()}`,
-      object: 'chat.completion',
-      created: Math.floor(Date.now() / 1000),
-      model: request.model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content: 'This is a mock response from TealHfTgi.',
-          },
-          finish_reason: 'stop',
-        },
-      ],
-      usage: {
-        prompt_tokens: 50,
-        completion_tokens: 10,
-        total_tokens: 60,
-      },
-    };
-
-    return mockResponse;
+    const body = { ...request };
+    delete body.context;
+    return postProviderJson<HfTgiChatCompletionResponse>({
+      baseUrl: this.config.baseUrl!,
+      apiKey: this.config.apiKey,
+      path: '/v1/chat/completions',
+      body,
+      providerName: 'HF TGI',
+    });
   }
 
   /**
    * Call TGI Generate API.
    */
   private async callTgiGenerate(
-    _request: HfTgiGenerateRequest
+    request: HfTgiGenerateRequest
   ): Promise<HfTgiGenerateResponse> {
-    const mockResponse: HfTgiGenerateResponse = {
-      generated_text: 'This is a mock response from TealHfTgi generate.',
-      details: {
-        finish_reason: 'length',
-        generated_tokens: 10,
-        prefill_tokens: 50,
-      },
-    };
-
-    return mockResponse;
+    const body = { ...request };
+    delete body.context;
+    return postProviderJson<HfTgiGenerateResponse>({
+      baseUrl: this.config.baseUrl!,
+      apiKey: this.config.apiKey,
+      path: '/generate',
+      body,
+      providerName: 'HF TGI',
+    });
   }
 
   /** Get current configuration. */

@@ -8,8 +8,46 @@
 export { TealTiger } from './client/TealTiger';
 
 // Integrated Clients (v1.1.0)
-export { TealBaseClient, TealOpenAI, TealAnthropic } from './client';
+export {
+  TealBaseClient,
+  TealOpenAI,
+  TealAnthropic,
+  TealGroq,
+  TealDeepSeek,
+  TealTogether,
+  TealHfTgi,
+  TealXai,
+  createGroqClient,
+  createDeepSeekClient,
+  createTogetherClient,
+  createHfTgiClient,
+  createXaiClient,
+  GROQ_PRICING,
+  DEEPSEEK_PRICING,
+  TOGETHER_PRICING,
+  HF_TGI_PRICING,
+  XAI_PRICING
+} from './client';
 export type { TealClientConfig, RequestContext } from './client';
+export type {
+  GroqConfig,
+  GroqChatCompletionRequest,
+  GroqChatCompletionResponse,
+  DeepSeekConfig,
+  DeepSeekChatCompletionRequest,
+  DeepSeekChatCompletionResponse,
+  TogetherConfig,
+  TogetherChatCompletionRequest,
+  TogetherChatCompletionResponse,
+  HfTgiConfig,
+  HfTgiChatCompletionRequest,
+  HfTgiGenerateRequest,
+  HfTgiChatCompletionResponse,
+  HfTgiGenerateResponse,
+  XaiConfig,
+  XaiChatCompletionRequest,
+  XaiChatCompletionResponse
+} from './client';
 export {
   TealTigerError,
   PolicyViolationError,

@@ -16,6 +16,7 @@ import { CostRecord } from '../cost/types';
 import { generateId } from '../cost/utils';
 import { ExecutionContext } from '../core/context/ExecutionContext';
 import { ContextManager } from '../core/context/ContextManager';
+import { postProviderJson } from './http';
 
 // ── DeepSeek-Specific Pricing ────────────────────────────────────
 
@@ -132,7 +133,7 @@ export class TealDeepSeek {
       enableGuardrails: true,
       enableCostTracking: true,
       model: 'deepseek-chat',
-      baseUrl: 'https://api.deepseek.com',
+      baseUrl: 'https://api.deepseek.com/v1',
       ...config,
     };
 
@@ -198,7 +199,7 @@ export class TealDeepSeek {
             outputTokens: estimatedOutputTokens,
             totalTokens: estimatedInputTokens + estimatedOutputTokens,
           },
-          'custom'
+          'deepseek'
         );
 
         if (this.budgetManager) {
@@ -241,7 +242,7 @@ export class TealDeepSeek {
             outputTokens: response.usage.completion_tokens,
             totalTokens: response.usage.total_tokens,
           },
-          'custom'
+          'deepseek'
         );
 
         security.costRecord = costRecord;
@@ -264,35 +265,20 @@ export class TealDeepSeek {
   }
 
   /**
-   * Call DeepSeek API.
-   * In production, this would use fetch to DeepSeek's OpenAI-compatible endpoint.
+   * Call DeepSeek's OpenAI-compatible chat completions API.
    */
   private async callDeepSeek(
     request: DeepSeekChatCompletionRequest
   ): Promise<DeepSeekChatCompletionResponse> {
-    const mockResponse: DeepSeekChatCompletionResponse = {
-      id: `chatcmpl-${generateId()}`,
-      object: 'chat.completion',
-      created: Math.floor(Date.now() / 1000),
-      model: request.model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content: 'This is a mock response from TealDeepSeek.',
-          },
-          finish_reason: 'stop',
-        },
-      ],
-      usage: {
-        prompt_tokens: 50,
-        completion_tokens: 10,
-        total_tokens: 60,
-      },
-    };
-
-    return mockResponse;
+    const body = { ...request };
+    delete body.context;
+    return postProviderJson<DeepSeekChatCompletionResponse>({
+      baseUrl: this.config.baseUrl!,
+      apiKey: this.config.apiKey,
+      path: '/chat/completions',
+      body,
+      providerName: 'DeepSeek',
+    });
   }
 
   /** Get current configuration. */

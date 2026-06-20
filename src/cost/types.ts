@@ -7,7 +7,18 @@
 /**
  * Supported AI model providers
  */
-export type ModelProvider = 'openai' | 'anthropic' | 'azure-openai' | 'google' | 'cohere' | 'custom';
+export type ModelProvider =
+  | 'openai'
+  | 'anthropic'
+  | 'azure-openai'
+  | 'google'
+  | 'cohere'
+  | 'groq'
+  | 'deepseek'
+  | 'together'
+  | 'hf-tgi'
+  | 'xai'
+  | 'custom';
 
 /**
  * Pricing information for a specific model

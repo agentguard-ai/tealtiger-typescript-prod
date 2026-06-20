@@ -156,6 +156,149 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     outputCostPer1K: 0.002,
     lastUpdated: '2026-01-31',
   },
+
+  // Groq Models
+  'llama-3.3-70b-versatile': {
+    model: 'llama-3.3-70b-versatile',
+    provider: 'groq',
+    inputCostPer1K: 0.00059,
+    outputCostPer1K: 0.00079,
+    lastUpdated: '2026-01-31',
+  },
+  'llama-3.1-8b-instant': {
+    model: 'llama-3.1-8b-instant',
+    provider: 'groq',
+    inputCostPer1K: 0.00005,
+    outputCostPer1K: 0.00008,
+    lastUpdated: '2026-01-31',
+  },
+  'llama-3.1-70b-versatile': {
+    model: 'llama-3.1-70b-versatile',
+    provider: 'groq',
+    inputCostPer1K: 0.00059,
+    outputCostPer1K: 0.00079,
+    lastUpdated: '2026-01-31',
+  },
+  'mixtral-8x7b-32768': {
+    model: 'mixtral-8x7b-32768',
+    provider: 'groq',
+    inputCostPer1K: 0.00024,
+    outputCostPer1K: 0.00024,
+    lastUpdated: '2026-01-31',
+  },
+  'gemma2-9b-it': {
+    model: 'gemma2-9b-it',
+    provider: 'groq',
+    inputCostPer1K: 0.0002,
+    outputCostPer1K: 0.0002,
+    lastUpdated: '2026-01-31',
+  },
+
+  // DeepSeek Models
+  'deepseek-chat': {
+    model: 'deepseek-chat',
+    provider: 'deepseek',
+    inputCostPer1K: 0.00014,
+    outputCostPer1K: 0.00028,
+    lastUpdated: '2026-01-31',
+  },
+  'deepseek-reasoner': {
+    model: 'deepseek-reasoner',
+    provider: 'deepseek',
+    inputCostPer1K: 0.00055,
+    outputCostPer1K: 0.00219,
+    lastUpdated: '2026-01-31',
+  },
+  'deepseek-coder': {
+    model: 'deepseek-coder',
+    provider: 'deepseek',
+    inputCostPer1K: 0.00014,
+    outputCostPer1K: 0.00028,
+    lastUpdated: '2026-01-31',
+  },
+
+  // Together AI Models
+  'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo': {
+    model: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
+    provider: 'together',
+    inputCostPer1K: 0.005,
+    outputCostPer1K: 0.005,
+    lastUpdated: '2026-01-31',
+  },
+  'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo': {
+    model: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+    provider: 'together',
+    inputCostPer1K: 0.00088,
+    outputCostPer1K: 0.00088,
+    lastUpdated: '2026-01-31',
+  },
+  'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': {
+    model: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+    provider: 'together',
+    inputCostPer1K: 0.00018,
+    outputCostPer1K: 0.00018,
+    lastUpdated: '2026-01-31',
+  },
+  'deepseek-ai/DeepSeek-R1': {
+    model: 'deepseek-ai/DeepSeek-R1',
+    provider: 'together',
+    inputCostPer1K: 0.003,
+    outputCostPer1K: 0.007,
+    lastUpdated: '2026-01-31',
+  },
+
+  // Hugging Face TGI Models
+  'meta-llama/Meta-Llama-3.1-70B-Instruct': {
+    model: 'meta-llama/Meta-Llama-3.1-70B-Instruct',
+    provider: 'hf-tgi',
+    inputCostPer1K: 0.0009,
+    outputCostPer1K: 0.0009,
+    lastUpdated: '2026-01-31',
+  },
+  'meta-llama/Meta-Llama-3.1-8B-Instruct': {
+    model: 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+    provider: 'hf-tgi',
+    inputCostPer1K: 0.0002,
+    outputCostPer1K: 0.0002,
+    lastUpdated: '2026-01-31',
+  },
+  'custom-model': {
+    model: 'custom-model',
+    provider: 'hf-tgi',
+    inputCostPer1K: 0.0005,
+    outputCostPer1K: 0.0005,
+    lastUpdated: '2026-01-31',
+  },
+
+  // xAI Models
+  'grok-3': {
+    model: 'grok-3',
+    provider: 'xai',
+    inputCostPer1K: 0.003,
+    outputCostPer1K: 0.015,
+    lastUpdated: '2026-01-31',
+  },
+  'grok-3-mini': {
+    model: 'grok-3-mini',
+    provider: 'xai',
+    inputCostPer1K: 0.0003,
+    outputCostPer1K: 0.0005,
+    lastUpdated: '2026-01-31',
+  },
+  'grok-2': {
+    model: 'grok-2',
+    provider: 'xai',
+    inputCostPer1K: 0.002,
+    outputCostPer1K: 0.01,
+    lastUpdated: '2026-01-31',
+  },
+  'grok-2-mini': {
+    model: 'grok-2-mini',
+    provider: 'xai',
+    inputCostPer1K: 0.0002,
+    outputCostPer1K: 0.0004,
+    lastUpdated: '2026-01-31',
+  },
 };
 
 /**

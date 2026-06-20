@@ -16,6 +16,7 @@ import { CostRecord } from '../cost/types';
 import { generateId } from '../cost/utils';
 import { ExecutionContext } from '../core/context/ExecutionContext';
 import { ContextManager } from '../core/context/ContextManager';
+import { postProviderJson } from './http';
 
 // ── xAI-Specific Pricing ─────────────────────────────────────────
 
@@ -196,7 +197,7 @@ export class TealXai {
             outputTokens: estimatedOutputTokens,
             totalTokens: estimatedInputTokens + estimatedOutputTokens,
           },
-          'custom'
+          'xai'
         );
 
         if (this.budgetManager) {
@@ -239,7 +240,7 @@ export class TealXai {
             outputTokens: response.usage.completion_tokens,
             totalTokens: response.usage.total_tokens,
           },
-          'custom'
+          'xai'
         );
 
         security.costRecord = costRecord;
@@ -262,35 +263,20 @@ export class TealXai {
   }
 
   /**
-   * Call xAI API.
-   * In production, this would use fetch to xAI's OpenAI-compatible endpoint.
+   * Call xAI's OpenAI-compatible chat completions API.
    */
   private async callXai(
     request: XaiChatCompletionRequest
   ): Promise<XaiChatCompletionResponse> {
-    const mockResponse: XaiChatCompletionResponse = {
-      id: `chatcmpl-${generateId()}`,
-      object: 'chat.completion',
-      created: Math.floor(Date.now() / 1000),
-      model: request.model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content: 'This is a mock response from TealXai.',
-          },
-          finish_reason: 'stop',
-        },
-      ],
-      usage: {
-        prompt_tokens: 50,
-        completion_tokens: 10,
-        total_tokens: 60,
-      },
-    };
-
-    return mockResponse;
+    const body = { ...request };
+    delete body.context;
+    return postProviderJson<XaiChatCompletionResponse>({
+      baseUrl: this.config.baseUrl!,
+      apiKey: this.config.apiKey,
+      path: '/chat/completions',
+      body,
+      providerName: 'xAI',
+    });
   }
 
   /** Get current configuration. */

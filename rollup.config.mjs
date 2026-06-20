@@ -118,6 +118,31 @@ const providerConfigs = [
     name: 'mistral',
     input: 'src/providers/mistral.ts',
     external: [...external]
+  },
+  {
+    name: 'groq',
+    input: 'src/providers/groq.ts',
+    external: [...external]
+  },
+  {
+    name: 'deepseek',
+    input: 'src/providers/deepseek.ts',
+    external: [...external]
+  },
+  {
+    name: 'together',
+    input: 'src/providers/together.ts',
+    external: [...external]
+  },
+  {
+    name: 'hf-tgi',
+    input: 'src/providers/hf-tgi.ts',
+    external: [...external]
+  },
+  {
+    name: 'xai',
+    input: 'src/providers/xai.ts',
+    external: [...external]
   }
 ].map(({ name, input, external: providerExternal }) => ({
   input,

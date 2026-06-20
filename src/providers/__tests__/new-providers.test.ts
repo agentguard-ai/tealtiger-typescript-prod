@@ -15,12 +15,71 @@ import { TealDeepSeek, createDeepSeekClient, DEEPSEEK_PRICING } from '../deepsee
 import { TealTogether, createTogetherClient, TOGETHER_PRICING } from '../together';
 import { TealHfTgi, createHfTgiClient, HF_TGI_PRICING } from '../hf-tgi';
 import { TealXai, createXaiClient, XAI_PRICING } from '../xai';
+import { getProviderModels, getSupportedProviders } from '../../cost';
 
 // ── Helper ───────────────────────────────────────────────────────
 
 function makeConfig(overrides: Partial<GroqConfig> = {}): GroqConfig {
   return { apiKey: 'test-key', ...overrides };
 }
+
+const originalFetch = global.fetch;
+
+function jsonResponse(data: unknown, ok = true, statusText = 'OK'): Response {
+  return {
+    ok,
+    statusText,
+    json: jest.fn().mockResolvedValue(data),
+  } as unknown as Response;
+}
+
+function installProviderFetchMock(): void {
+  global.fetch = jest.fn(async (url: string | URL | Request, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body || '{}'));
+
+    if (String(url).endsWith('/generate')) {
+      return jsonResponse({
+        generated_text: 'Generated response from HF TGI.',
+        details: {
+          finish_reason: 'length',
+          generated_tokens: body.parameters?.max_new_tokens || 10,
+          prefill_tokens: 50,
+        },
+      });
+    }
+
+    return jsonResponse({
+      id: 'chatcmpl-test',
+      object: 'chat.completion',
+      created: 1700000000,
+      model: body.model,
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: 'Provider response',
+          },
+          finish_reason: 'stop',
+        },
+      ],
+      usage: {
+        prompt_tokens: 50,
+        completion_tokens: 10,
+        total_tokens: 60,
+      },
+    });
+  }) as unknown as typeof fetch;
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  installProviderFetchMock();
+});
+
+afterAll(() => {
+  global.fetch = originalFetch;
+});
 
 // ── Groq Provider Tests ──────────────────────────────────────────
 
@@ -62,6 +121,10 @@ describe('TealGroq', () => {
     expect(response.choices[0].message.role).toBe('assistant');
     expect(response.usage).toBeDefined();
     expect(response.usage.total_tokens).toBeGreaterThan(0);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.groq.com/openai/v1/chat/completions',
+      expect.objectContaining({ method: 'POST' })
+    );
   });
 
   it('should have valid pricing entries', () => {
@@ -99,7 +162,7 @@ describe('TealDeepSeek', () => {
     const client = new TealDeepSeek({ apiKey: 'test-key' });
     const config = client.getConfig();
     expect(config.model).toBe('deepseek-chat');
-    expect(config.baseUrl).toBe('https://api.deepseek.com');
+    expect(config.baseUrl).toBe('https://api.deepseek.com/v1');
   });
 
   it('should return a response from chat.completions.create', async () => {
@@ -111,6 +174,10 @@ describe('TealDeepSeek', () => {
     expect(response.id).toBeDefined();
     expect(response.choices).toHaveLength(1);
     expect(response.usage.total_tokens).toBeGreaterThan(0);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.deepseek.com/v1/chat/completions',
+      expect.objectContaining({ method: 'POST' })
+    );
   });
 
   it('should have valid pricing entries', () => {
@@ -154,6 +221,10 @@ describe('TealTogether', () => {
     expect(response.id).toBeDefined();
     expect(response.choices).toHaveLength(1);
     expect(response.usage.total_tokens).toBeGreaterThan(0);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.together.xyz/v1/chat/completions',
+      expect.objectContaining({ method: 'POST' })
+    );
   });
 
   it('should have valid pricing entries', () => {
@@ -202,6 +273,10 @@ describe('TealHfTgi', () => {
     expect(response.id).toBeDefined();
     expect(response.choices).toHaveLength(1);
     expect(response.usage.total_tokens).toBeGreaterThan(0);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://localhost:8080/v1/chat/completions',
+      expect.objectContaining({ method: 'POST' })
+    );
   });
 
   it('should return a response from generate', async () => {
@@ -213,6 +288,10 @@ describe('TealHfTgi', () => {
     expect(response.generated_text).toBeDefined();
     expect(response.details).toBeDefined();
     expect(response.details!.generated_tokens).toBeGreaterThan(0);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://localhost:8080/generate',
+      expect.objectContaining({ method: 'POST' })
+    );
   });
 
   it('should have valid pricing entries', () => {
@@ -256,6 +335,10 @@ describe('TealXai', () => {
     expect(response.id).toBeDefined();
     expect(response.choices).toHaveLength(1);
     expect(response.usage.total_tokens).toBeGreaterThan(0);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.x.ai/v1/chat/completions',
+      expect.objectContaining({ method: 'POST' })
+    );
   });
 
   it('should have valid pricing entries', () => {
@@ -329,5 +412,27 @@ describe('Existing provider APIs are not modified', () => {
     const providerIndex = await import('../index');
     // Existing providers should still be accessible
     expect(providerIndex).toBeDefined();
+  });
+});
+
+describe('Public SDK importability', () => {
+  it('should export new providers from the root SDK entry point', async () => {
+    const sdk = await import('../../index');
+    expect(sdk.TealGroq).toBe(TealGroq);
+    expect(sdk.TealDeepSeek).toBe(TealDeepSeek);
+    expect(sdk.TealTogether).toBe(TealTogether);
+    expect(sdk.TealHfTgi).toBe(TealHfTgi);
+    expect(sdk.TealXai).toBe(TealXai);
+  });
+
+  it('should include the new providers in cost tracking metadata', () => {
+    expect(getSupportedProviders()).toEqual(
+      expect.arrayContaining(['groq', 'deepseek', 'together', 'hf-tgi', 'xai'])
+    );
+    expect(getProviderModels('groq').length).toBeGreaterThan(0);
+    expect(getProviderModels('deepseek').length).toBeGreaterThan(0);
+    expect(getProviderModels('together').length).toBeGreaterThan(0);
+    expect(getProviderModels('hf-tgi').length).toBeGreaterThan(0);
+    expect(getProviderModels('xai').length).toBeGreaterThan(0);
   });
 });

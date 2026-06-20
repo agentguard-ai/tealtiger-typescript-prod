@@ -72,7 +72,7 @@ console.log('Guardrails passed:', response.security?.guardrailResult?.passed);
 
 ## 🌐 Supported Providers
 
-95%+ market coverage with 7 LLM providers:
+95%+ market coverage with 12 LLM providers:
 
 | Provider | Client | Models | Features |
 |----------|--------|--------|----------|
@@ -83,6 +83,11 @@ console.log('Guardrails passed:', response.security?.guardrailResult?.passed);
 | **Azure** | `TealAzureOpenAI` | GPT-4, GPT-3.5 | Deployment-based, Azure AD |
 | **Mistral** | `TealMistral` | Large, Medium, Small, Mixtral | EU Data Residency, GDPR |
 | **Cohere** | `TealCohere` | Command, Embed | RAG, Citations, Connectors |
+| **Groq** | `TealGroq` | Llama, Mixtral, Gemma | OpenAI-compatible ultra-low latency |
+| **DeepSeek** | `TealDeepSeek` | Chat, Reasoner, Coder | Reasoning and coding models |
+| **Together AI** | `TealTogether` | Llama, Mixtral, Qwen, DeepSeek | Open-source model hosting |
+| **Hugging Face TGI** | `TealHfTgi` | Llama, Mixtral, Phi, custom | Self-hosted chat and generate APIs |
+| **xAI** | `TealXai` | Grok | OpenAI-compatible Grok models |
 
 ### Multi-Provider Orchestration
 

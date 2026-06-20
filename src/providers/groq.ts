@@ -16,6 +16,7 @@ import { CostRecord } from '../cost/types';
 import { generateId } from '../cost/utils';
 import { ExecutionContext } from '../core/context/ExecutionContext';
 import { ContextManager } from '../core/context/ContextManager';
+import { postProviderJson } from './http';
 
 // ── Groq-Specific Pricing ────────────────────────────────────────
 
@@ -201,7 +202,7 @@ export class TealGroq {
             outputTokens: estimatedOutputTokens,
             totalTokens: estimatedInputTokens + estimatedOutputTokens,
           },
-          'custom'
+          'groq'
         );
 
         if (this.budgetManager) {
@@ -244,7 +245,7 @@ export class TealGroq {
             outputTokens: response.usage.completion_tokens,
             totalTokens: response.usage.total_tokens,
           },
-          'custom'
+          'groq'
         );
 
         security.costRecord = costRecord;
@@ -267,40 +268,20 @@ export class TealGroq {
   }
 
   /**
-   * Call Groq API.
-   * In production, this would use the actual Groq SDK or fetch.
+   * Call Groq's OpenAI-compatible chat completions API.
    */
   private async callGroq(
     request: GroqChatCompletionRequest
   ): Promise<GroqChatCompletionResponse> {
-    // Placeholder — in production, use fetch to Groq's OpenAI-compatible endpoint
-    const mockResponse: GroqChatCompletionResponse = {
-      id: `chatcmpl-${generateId()}`,
-      object: 'chat.completion',
-      created: Math.floor(Date.now() / 1000),
-      model: request.model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content: 'This is a mock response from TealGroq.',
-          },
-          finish_reason: 'stop',
-        },
-      ],
-      usage: {
-        prompt_tokens: 50,
-        completion_tokens: 10,
-        total_tokens: 60,
-        queue_time: 0.001,
-        prompt_time: 0.005,
-        completion_time: 0.010,
-        total_time: 0.016,
-      },
-    };
-
-    return mockResponse;
+    const body = { ...request };
+    delete body.context;
+    return postProviderJson<GroqChatCompletionResponse>({
+      baseUrl: this.config.baseUrl!,
+      apiKey: this.config.apiKey,
+      path: '/chat/completions',
+      body,
+      providerName: 'Groq',
+    });
   }
 
   /** Get current configuration. */
