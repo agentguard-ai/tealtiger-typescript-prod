@@ -21,8 +21,21 @@ export { UnsupportedProviderError, FrozenAgentError } from './observe';
 export { TealTiger } from './client/TealTiger';
 
 // Integrated Clients (v1.1.0)
-export { TealBaseClient, TealOpenAI, TealAnthropic } from './client';
-export type { TealClientConfig, RequestContext } from './client';
+export {
+  TealBaseClient,
+  TealOpenAI,
+  TealAnthropic,
+  TealOllama,
+  createTealOllama
+} from './client';
+export type {
+  TealClientConfig,
+  RequestContext,
+  TealOllamaConfig,
+  OllamaChatMessage,
+  OllamaChatCompletionParams,
+  OllamaChatCompletionResponse
+} from './client';
 export {
   TealTigerError,
   PolicyViolationError,

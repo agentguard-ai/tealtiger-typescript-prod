@@ -118,6 +118,11 @@ const providerConfigs = [
     name: 'mistral',
     input: 'src/providers/mistral.ts',
     external: [...external]
+  },
+  {
+    name: 'ollama',
+    input: 'src/providers/ollama.ts',
+    external: [...external]
   }
 ].map(({ name, input, external: providerExternal }) => ({
   input,

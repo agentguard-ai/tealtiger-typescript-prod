@@ -9,6 +9,7 @@ export * from './gemini';
 export * from './bedrock';
 export * from './azure-openai';
 export * from './mistral';
+export * from './ollama';
 export * from './cohere';
 
 // Legacy exports for backward compatibility

@@ -74,6 +74,11 @@
       "require": "./dist/providers/xai.js",
       "types": "./dist/providers/xai.d.ts"
     },
+    "./providers/ollama": {
+      "import": "./dist/providers/ollama.esm.js",
+      "require": "./dist/providers/ollama.js",
+      "types": "./dist/providers/ollama.d.ts"
+    },
     "./serverless": {
       "import": "./dist/serverless.esm.js",
       "require": "./dist/serverless.js",
@@ -155,13 +160,13 @@
     "@rollup/plugin-commonjs": "^28.0.2",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.3.0",
-    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-terser": "^1.0.0",
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/jest": "^29.5.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.0.0",
     "fast-check": "^4.5.3",
     "jest": "^29.5.0",
@@ -177,5 +182,8 @@
   },
   "engines": {
     "node": ">=16.0.0"
+  },
+  "overrides": {
+    "minimatch": "9.0.9"
   }
 }
