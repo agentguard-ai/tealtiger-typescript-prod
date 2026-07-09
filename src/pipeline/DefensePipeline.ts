@@ -10,6 +10,7 @@
  * @requirements 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 2.3, 2.4, 2.5, 3.1, 4.3, 5.1, 5.5, 13.1, 13.4
  */
 
+import { randomUUID } from 'crypto';
 import type { ModuleContext, ModuleEvaluationRequest } from '../core/engine/v1.2/types';
 import type {
   PipelineConfig,
@@ -109,7 +110,7 @@ export class DefensePipeline {
     const pipelineEntry = Date.now();
 
     // Generate correlation_id if not provided
-    const correlationId = request.correlation_id ?? crypto.randomUUID();
+    const correlationId = request.correlation_id ?? randomUUID();
     const resolvedRequest: PipelineRequest = {
       ...request,
       correlation_id: correlationId,
