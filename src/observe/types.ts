@@ -106,6 +106,8 @@ export interface ObserveCostSummary {
   };
 }
 
+export type CostSummary = ObserveCostSummary;
+
 /**
  * Cost result for a single request.
  */
