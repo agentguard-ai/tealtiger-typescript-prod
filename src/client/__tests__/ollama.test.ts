@@ -6,11 +6,11 @@ import { PolicyViolationError } from '../base';
 const originalFetch = global.fetch;
 
 function mockOllamaFetch(): jest.Mock {
-  const fetchMock = jest.fn(async (_url: string | URL | Request, init?: RequestInit) => {
-    const body = JSON.parse(String(init?.body || '{}'));
-    return {
+  const fetchMock = jest.fn((_url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    const body = JSON.parse(String(init?.body || '{}')) as { model?: string };
+    const response = {
       ok: true,
-      json: async () => ({
+      json: (): Promise<Record<string, unknown>> => Promise.resolve({
         id: 'chatcmpl-ollama-test',
         object: 'chat.completion',
         created: 1700000000,
@@ -27,6 +27,8 @@ function mockOllamaFetch(): jest.Mock {
         }
       })
     } as Response;
+
+    return Promise.resolve(response);
   });
 
   global.fetch = fetchMock as unknown as typeof fetch;
