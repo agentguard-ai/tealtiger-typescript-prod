@@ -28,8 +28,8 @@ function makeDecision(overrides: Partial<DecisionV13> = {}): DecisionV13 {
     risk_score: 85,
     mode: PolicyMode.ENFORCE,
     policy_id: 'test-policy',
-    policy_version: '1.3.0',
-    component_versions: { sdk: '1.3.0', engine: '1.3.0' },
+    policy_version: '1.4.0',
+    component_versions: { sdk: '1.4.0', engine: '1.4.0' },
     correlation_id: 'corr-123-abc',
     reason: 'Test decision',
     event_type: 'governance.decision',
@@ -43,7 +43,7 @@ function makeDecision(overrides: Partial<DecisionV13> = {}): DecisionV13 {
 function makeContext(overrides: Partial<GovernanceContext> = {}): GovernanceContext {
   return {
     correlation_id: 'corr-123-abc',
-    policy_version: '1.3.0',
+    policy_version: '1.4.0',
     teec_version: '2.0.0',
     timestamp: 1700000000000,
     agent_id: 'agent-007',
@@ -87,7 +87,7 @@ describe('SIEMExporter', () => {
       expect(parsed.timestamp).toBe('2023-11-14T22:13:20.000Z');
       expect(parsed.decision_outcome).toBe('DENY');
       expect(parsed.reason_codes).toEqual(['POLICY_VIOLATION']);
-      expect(parsed.policy_version).toBe('1.3.0');
+      expect(parsed.policy_version).toBe('1.4.0');
       expect(parsed.agent_id).toBe('agent-007');
       expect(parsed.action_type).toBe('governance.decision');
       expect(parsed.risk_score).toBe(85);
@@ -127,7 +127,7 @@ describe('SIEMExporter', () => {
       const output = exporter.export(decision, context, 'cef');
 
       // CEF header: CEF:Version|Vendor|Product|DeviceVersion|SignatureID|Name|Severity|Extension
-      expect(output).toMatch(/^CEF:0\|TealTiger\|GovernanceEngine\|1\.3\.0\|/);
+      expect(output).toMatch(/^CEF:0\|TealTiger\|GovernanceEngine\|1\.4\.0\|/);
     });
 
     it('includes decision outcome in CEF name field', () => {
@@ -177,7 +177,7 @@ describe('SIEMExporter', () => {
 
       const output = exporter.export(decision, context, 'leef');
 
-      expect(output).toMatch(/^LEEF:2\.0\|TealTiger\|GovernanceEngine\|1\.3\.0\|/);
+      expect(output).toMatch(/^LEEF:2\.0\|TealTiger\|GovernanceEngine\|1\.4\.0\|/);
     });
 
     it('includes all required attributes in LEEF body', () => {
@@ -187,7 +187,7 @@ describe('SIEMExporter', () => {
       const output = exporter.export(decision, context, 'leef');
 
       expect(output).toContain('outcome=DENY');
-      expect(output).toContain('policyVersion=1.3.0');
+      expect(output).toContain('policyVersion=1.4.0');
       expect(output).toContain('agentId=agent-007');
       expect(output).toContain('riskScore=85');
       expect(output).toContain('correlationId=corr-123-abc');
@@ -224,7 +224,7 @@ describe('OTelGovernanceEmitter', () => {
     const span = emitter.getRecordedSpans()[0];
     expect(span.attributes['decision.action']).toBe('DENY');
     expect(span.attributes['decision.risk_score']).toBe(85);
-    expect(span.attributes['policy.version']).toBe('1.3.0');
+    expect(span.attributes['policy.version']).toBe('1.4.0');
     expect(span.attributes['agent.id']).toBe('agent-007');
     expect(span.attributes['correlation_id']).toBe('corr-123-abc');
     expect(span.attributes['reason_codes']).toEqual([ReasonCode.POLICY_VIOLATION]);

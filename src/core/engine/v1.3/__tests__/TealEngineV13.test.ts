@@ -956,6 +956,6 @@ describe('TealEngineV13 — Decision Metadata', () => {
 
     const decision = await engine.evaluate(BASE_REQUEST, CTX);
 
-    expect(decision.policy_version).toBe('1.3.0');
+    expect(decision.policy_version).toBe('1.4.0');
   });
 });

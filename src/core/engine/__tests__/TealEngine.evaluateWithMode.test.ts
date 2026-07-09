@@ -285,8 +285,8 @@ describe('TealEngine.evaluateWithMode()', () => {
 
       const decision = engine.evaluateWithMode(context);
 
-      expect(decision.component_versions.sdk).toBe('1.3.0');
-      expect(decision.component_versions.engine).toBe('1.3.0');
+      expect(decision.component_versions.sdk).toBe('1.4.0');
+      expect(decision.component_versions.engine).toBe('1.4.0');
     });
 
     it('should include evaluation metadata', () => {

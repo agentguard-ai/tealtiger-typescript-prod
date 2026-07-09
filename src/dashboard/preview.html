@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TealTiger Governance Dashboard — v1.2</title>
+  <style>
+    :root {
+      --teal-primary: #0d9488;
+      --teal-dark: #0f766e;
+      --teal-light: #ccfbf1;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-hover: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --orange: #f97316;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 24px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--surface-hover);
+    }
+
+    .header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--teal-primary);
+    }
+
+    .header .version-badge {
+      background: var(--teal-dark);
+      color: var(--teal-light);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .header .timestamp {
+      margin-left: auto;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    /* Stats Row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--surface-hover);
+    }
+
+    .stat-card .label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--teal-primary);
+    }
+
+    .stat-card .sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Modules Section */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .module-card {
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 16px;
+      border: 1px solid var(--surface-hover);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .module-card .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .module-card .dot.active { background: var(--green); }
+    .module-card .dot.inactive { background: var(--text-muted); }
+
+    .module-card .info .name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .module-card .info .ver {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Controls Section */
+    .controls-section {
+      margin-bottom: 32px;
+    }
+
+    .dimension-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .dim-tab {
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--surface-hover);
+      background: var(--surface);
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .dim-tab.active, .dim-tab:hover {
+      background: var(--teal-dark);
+      color: var(--teal-light);
+      border-color: var(--teal-primary);
+    }
+
+    .dim-tab .count {
+      margin-left: 4px;
+      opacity: 0.7;
+    }
+
+    .controls-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .controls-table th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      background: var(--surface-hover);
+    }
+
+    .controls-table td {
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      border-top: 1px solid var(--surface-hover);
+    }
+
+    .maturity-badge {
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .maturity-badge.stable { background: #166534; color: #86efac; }
+    .maturity-badge.beta { background: #854d0e; color: #fde047; }
+    .maturity-badge.alpha { background: #1e3a5f; color: #93c5fd; }
+    .maturity-badge.planned { background: #3f3f46; color: #a1a1aa; }
+
+    /* Decision Stats */
+    .decision-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .decision-card {
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid var(--surface-hover);
+    }
+
+    .decision-card h3 {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .bar-row .label {
+      font-size: 0.75rem;
+      width: 100px;
+      color: var(--text-muted);
+    }
+
+    .bar-row .bar {
+      flex: 1;
+      height: 8px;
+      background: var(--surface-hover);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-row .bar .fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+
+    .bar-row .count {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      width: 30px;
+      text-align: right;
+    }
+
+    @media (max-width: 768px) {
+      .decision-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🐯 TealTiger Governance Dashboard</h1>
+  <span class="version-badge">Bundle v1.2.0</span>
+  <span class="version-badge">TEEC v0.1.0</span>
+  <span class="timestamp" id="timestamp"></span>
+</div>
+
+<!-- TEEC Coverage Stats -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="label">Controls Implemented</div>
+    <div class="value">38</div>
+    <div class="sub">+9 planned for v1.3</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Reason Codes</div>
+    <div class="value">32</div>
+    <div class="sub">TEEC registry</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Event Types</div>
+    <div class="value">18</div>
+    <div class="sub">TEEC registry</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Decision Actions</div>
+    <div class="value">11</div>
+    <div class="sub">TEEC registry</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Governance Dimensions</div>
+    <div class="value">6</div>
+    <div class="sub">SEC · MEM · REL · EVID · REG · COST</div>
+  </div>
+</div>
+
+<!-- Module Status -->
+<h2 class="section-title">Module Status</h2>
+<div class="modules-grid" id="modules-grid"></div>
+
+<!-- Controls -->
+<div class="controls-section">
+  <h2 class="section-title">Governance Controls</h2>
+  <div class="dimension-tabs" id="dimension-tabs"></div>
+  <table class="controls-table">
+    <thead>
+      <tr>
+        <th>Control ID</th>
+        <th>Description</th>
+        <th>Module</th>
+        <th>Maturity</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="controls-body"></tbody>
+  </table>
+</div>
+
+<!-- Decision Stats -->
+<h2 class="section-title">Decision Statistics (Sample)</h2>
+<div class="decision-grid">
+  <div class="decision-card">
+    <h3>By Action</h3>
+    <div id="action-bars"></div>
+  </div>
+  <div class="decision-card">
+    <h3>By Reason Code (Top 5)</h3>
+    <div id="reason-bars"></div>
+  </div>
+</div>
+
+<script>
+// ── Sample Snapshot Data (mirrors GovernanceDashboard.getSnapshot()) ──
+const snapshot = {
+  bundle_version: '1.2.0',
+  teec_version: '0.1.0',
+  modules: {
+    TealSecrets: { version: '1.2.0', initialized: true },
+    TealRegistry: { version: '1.2.0', initialized: true },
+    TealReliability: { version: '1.2.0', initialized: true },
+    TealMemory: { version: '1.2.0', initialized: true },
+    TealVerify: { version: '1.2.0', initialized: true },
+    TealMonitor: { version: '1.1.0', initialized: true },
+  },
+  controls: {
+    implemented: [
+      { control_id: 'SEC-001', dimension: 'SEC', maturity: 'stable', module: 'TealSecrets', status: 'implemented', description: 'Secret detection (500+ patterns)' },
+      { control_id: 'SEC-002', dimension: 'SEC', maturity: 'stable', module: 'TealSecrets', status: 'implemented', description: 'Confidence scoring (entropy, structural, context, FP)' },
+      { control_id: 'SEC-003', dimension: 'SEC', maturity: 'stable', module: 'TealSecrets', status: 'implemented', description: 'Custom pattern registration' },
+      { control_id: 'SEC-004', dimension: 'SEC', maturity: 'stable', module: 'TealSecrets', status: 'implemented', description: 'Threshold-based enforcement (DENY/REDACT/MONITOR)' },
+      { control_id: 'SEC-005', dimension: 'SEC', maturity: 'stable', module: 'TealSecrets', status: 'implemented', description: 'Multi-layer detection cache (L1 LRU, L2 content-hash)' },
+      { control_id: 'SEC-006', dimension: 'SEC', maturity: 'stable', module: 'TealSecrets', status: 'implemented', description: 'Credential TTL enforcement' },
+      { control_id: 'SEC-007', dimension: 'SEC', maturity: 'stable', module: 'TealSecrets', status: 'implemented', description: 'Credential rotation warnings' },
+      { control_id: 'SEC-008', dimension: 'SEC', maturity: 'stable', module: 'TealSecrets', status: 'implemented', description: 'Performance budget enforcement' },
+      { control_id: 'SEC-009', dimension: 'SEC', maturity: 'stable', module: 'TealSecrets', status: 'implemented', description: 'Evidence redaction (no raw secrets in output)' },
+      { control_id: 'SEC-010', dimension: 'SEC', maturity: 'stable', module: 'TealSecrets', status: 'implemented', description: 'Deterministic finding IDs and fingerprints' },
+      { control_id: 'MEM-001', dimension: 'MEM', maturity: 'stable', module: 'TealMemory', status: 'implemented', description: 'Write governance (secret/PII scan)' },
+      { control_id: 'MEM-002', dimension: 'MEM', maturity: 'stable', module: 'TealMemory', status: 'implemented', description: 'Read governance (scope enforcement)' },
+      { control_id: 'MEM-003', dimension: 'MEM', maturity: 'stable', module: 'TealMemory', status: 'implemented', description: 'Classification clearance enforcement' },
+      { control_id: 'MEM-004', dimension: 'MEM', maturity: 'stable', module: 'TealMemory', status: 'implemented', description: 'TTL required enforcement' },
+      { control_id: 'MEM-005', dimension: 'MEM', maturity: 'stable', module: 'TealMemory', status: 'implemented', description: 'TTL max enforcement' },
+      { control_id: 'MEM-006', dimension: 'MEM', maturity: 'stable', module: 'TealMemory', status: 'implemented', description: 'Evidence emission with redaction' },
+      { control_id: 'MEM-007', dimension: 'MEM', maturity: 'stable', module: 'TealMemory', status: 'implemented', description: 'Memory forget governance' },
+      { control_id: 'MEM-008', dimension: 'MEM', maturity: 'stable', module: 'TealMemory', status: 'implemented', description: 'Adapter abstraction (pluggable backends)' },
+      { control_id: 'REL-001', dimension: 'REL', maturity: 'stable', module: 'TealReliability', status: 'implemented', description: 'Bounded retry with budget' },
+      { control_id: 'REL-002', dimension: 'REL', maturity: 'stable', module: 'TealReliability', status: 'implemented', description: 'Fallback chain (priority-ordered)' },
+      { control_id: 'REL-003', dimension: 'REL', maturity: 'stable', module: 'TealReliability', status: 'implemented', description: 'Deterministic degrade' },
+      { control_id: 'REL-004', dimension: 'REL', maturity: 'stable', module: 'TealReliability', status: 'implemented', description: 'Circuit breaker (CLOSED/OPEN/HALF_OPEN)' },
+      { control_id: 'REL-005', dimension: 'REL', maturity: 'stable', module: 'TealReliability', status: 'implemented', description: 'Transient failure detection' },
+      { control_id: 'REL-006', dimension: 'REL', maturity: 'stable', module: 'TealReliability', status: 'implemented', description: 'Budget exhaustion handling' },
+      { control_id: 'EVID-001', dimension: 'EVID', maturity: 'stable', module: 'TealVerify', status: 'implemented', description: 'SARIF v2.1.0 export' },
+      { control_id: 'EVID-002', dimension: 'EVID', maturity: 'stable', module: 'TealVerify', status: 'implemented', description: 'JUnit XML export' },
+      { control_id: 'EVID-003', dimension: 'EVID', maturity: 'stable', module: 'TealVerify', status: 'implemented', description: 'JSON summary export' },
+      { control_id: 'EVID-004', dimension: 'EVID', maturity: 'stable', module: 'TealVerify', status: 'implemented', description: 'Golden test runner' },
+      { control_id: 'EVID-005', dimension: 'EVID', maturity: 'stable', module: 'TealVerify', status: 'implemented', description: 'Red-team harness' },
+      { control_id: 'EVID-006', dimension: 'EVID', maturity: 'stable', module: 'TealVerify', status: 'implemented', description: 'TEEC validation commands' },
+      { control_id: 'REG-001', dimension: 'REG', maturity: 'stable', module: 'TealRegistry', status: 'implemented', description: 'Model allowlist enforcement' },
+      { control_id: 'REG-002', dimension: 'REG', maturity: 'stable', module: 'TealRegistry', status: 'implemented', description: 'Tool allowlist enforcement' },
+      { control_id: 'REG-003', dimension: 'REG', maturity: 'stable', module: 'TealRegistry', status: 'implemented', description: 'Build provenance verification' },
+      { control_id: 'REG-004', dimension: 'REG', maturity: 'stable', module: 'TealRegistry', status: 'implemented', description: 'Supply chain scoring' },
+      { control_id: 'REG-005', dimension: 'REG', maturity: 'stable', module: 'TealRegistry', status: 'implemented', description: 'Entry versioning and hashing' },
+      { control_id: 'REG-006', dimension: 'REG', maturity: 'stable', module: 'TealRegistry', status: 'implemented', description: 'Multi-catalog support (models, tools, detectors, policies)' },
+      { control_id: 'COST-001', dimension: 'COST', maturity: 'beta', module: 'TealMonitor', status: 'implemented', description: 'Cost budget enforcement' },
+      { control_id: 'COST-002', dimension: 'COST', maturity: 'beta', module: 'TealMonitor', status: 'implemented', description: 'Cost velocity anomaly detection' },
+    ],
+    planned: [
+      { control_id: 'SEC-011', dimension: 'SEC', maturity: 'planned', module: 'TealSecrets', status: 'planned', description: 'ML-based secret detection' },
+      { control_id: 'SEC-012', dimension: 'SEC', maturity: 'planned', module: 'TealSecrets', status: 'planned', description: 'Secret rotation automation' },
+      { control_id: 'MEM-009', dimension: 'MEM', maturity: 'planned', module: 'TealMemory', status: 'planned', description: 'Cross-tenant memory isolation' },
+      { control_id: 'MEM-010', dimension: 'MEM', maturity: 'planned', module: 'TealMemory', status: 'planned', description: 'Memory encryption at rest' },
+      { control_id: 'REL-007', dimension: 'REL', maturity: 'planned', module: 'TealReliability', status: 'planned', description: 'Adaptive retry budgets' },
+      { control_id: 'EVID-007', dimension: 'EVID', maturity: 'planned', module: 'TealVerify', status: 'planned', description: 'CycloneDX SBOM export' },
+      { control_id: 'REG-007', dimension: 'REG', maturity: 'planned', module: 'TealRegistry', status: 'planned', description: 'Remote registry sync' },
+      { control_id: 'COST-003', dimension: 'COST', maturity: 'planned', module: 'TealMonitor', status: 'planned', description: 'Cost forecasting' },
+      { control_id: 'COST-004', dimension: 'COST', maturity: 'planned', module: 'TealMonitor', status: 'planned', description: 'Per-agent cost attribution' },
+    ]
+  },
+  decision_stats: {
+    total: 1247,
+    by_action: { ALLOW: 892, DENY: 156, REDACT: 89, MONITOR: 78, DEGRADE: 22, FALLBACK: 10 },
+    by_reason_code: { SECRET_DETECTED: 134, BUDGET_EXCEEDED: 89, MODEL_NOT_ALLOWED: 67, SCOPE_VIOLATION: 45, TTL_EXPIRED: 38, CIRCUIT_OPEN: 22, RETRY_EXHAUSTED: 18 }
+  },
+  timestamp: Date.now()
+};
+
+// ── Render Timestamp ──
+document.getElementById('timestamp').textContent = 'Snapshot: ' + new Date(snapshot.timestamp).toLocaleString();
+
+// ── Render Modules ──
+const modulesGrid = document.getElementById('modules-grid');
+for (const [name, info] of Object.entries(snapshot.modules)) {
+  modulesGrid.innerHTML += `
+    <div class="module-card">
+      <div class="dot ${info.initialized ? 'active' : 'inactive'}"></div>
+      <div class="info">
+        <div class="name">${name}</div>
+        <div class="ver">v${info.version} · ${info.initialized ? 'Initialized' : 'Not initialized'}</div>
+      </div>
+    </div>`;
+}
+
+// ── Render Controls ──
+const allControls = [...snapshot.controls.implemented, ...snapshot.controls.planned];
+const dimensions = [...new Set(allControls.map(c => c.dimension))];
+let activeDim = 'ALL';
+
+function renderTabs() {
+  const tabsEl = document.getElementById('dimension-tabs');
+  tabsEl.innerHTML = `<div class="dim-tab ${activeDim === 'ALL' ? 'active' : ''}" data-dim="ALL">ALL<span class="count">(${allControls.length})</span></div>`;
+  for (const dim of dimensions) {
+    const count = allControls.filter(c => c.dimension === dim).length;
+    tabsEl.innerHTML += `<div class="dim-tab ${activeDim === dim ? 'active' : ''}" data-dim="${dim}">${dim}<span class="count">(${count})</span></div>`;
+  }
+  tabsEl.querySelectorAll('.dim-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      activeDim = tab.dataset.dim;
+      renderTabs();
+      renderControls();
+    });
+  });
+}
+
+function renderControls() {
+  const tbody = document.getElementById('controls-body');
+  const filtered = activeDim === 'ALL' ? allControls : allControls.filter(c => c.dimension === activeDim);
+  tbody.innerHTML = filtered.map(c => `
+    <tr>
+      <td><strong>${c.control_id}</strong></td>
+      <td>${c.description || '—'}</td>
+      <td>${c.module}</td>
+      <td><span class="maturity-badge ${c.maturity}">${c.maturity}</span></td>
+      <td>${c.status === 'implemented' ? '✅' : '🔮'}</td>
+    </tr>`).join('');
+}
+
+renderTabs();
+renderControls();
+
+// ── Render Decision Stats ──
+const actionColors = { ALLOW: '#22c55e', DENY: '#ef4444', REDACT: '#eab308', MONITOR: '#3b82f6', DEGRADE: '#f97316', FALLBACK: '#a855f7' };
+const maxAction = Math.max(...Object.values(snapshot.decision_stats.by_action));
+const actionBars = document.getElementById('action-bars');
+
+for (const [action, count] of Object.entries(snapshot.decision_stats.by_action)) {
+  const pct = (count / maxAction * 100).toFixed(0);
+  actionBars.innerHTML += `
+    <div class="bar-row">
+      <div class="label">${action}</div>
+      <div class="bar"><div class="fill" style="width:${pct}%; background:${actionColors[action] || '#94a3b8'}"></div></div>
+      <div class="count">${count}</div>
+    </div>`;
+}
+
+const reasonEntries = Object.entries(snapshot.decision_stats.by_reason_code).sort((a, b) => b[1] - a[1]).slice(0, 5);
+const maxReason = reasonEntries[0]?.[1] || 1;
+const reasonBars = document.getElementById('reason-bars');
+
+for (const [code, count] of reasonEntries) {
+  const pct = (count / maxReason * 100).toFixed(0);
+  reasonBars.innerHTML += `
+    <div class="bar-row">
+      <div class="label" style="width:140px; font-size:0.7rem">${code}</div>
+      <div class="bar"><div class="fill" style="width:${pct}%; background:var(--teal-primary)"></div></div>
+      <div class="count">${count}</div>
+    </div>`;
+}
+</script>
+</body>
+</html>

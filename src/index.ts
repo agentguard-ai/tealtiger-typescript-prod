@@ -4,6 +4,19 @@
  * This is the main entry point for the TealTiger SDK
  */
 
+// ─── v1.4: observe() — Zero-Config Entry Point ──────────────────────────────
+export { observe, freeze, unfreeze } from './observe';
+export type {
+  ObserveConfig,
+  ObserveProxy,
+  ObserveCostSummary,
+  BaselineResult,
+  PercentileStats,
+  PIIDetectionSummary,
+  SupportedProvider,
+} from './observe';
+export { UnsupportedProviderError, FrozenAgentError } from './observe';
+
 // Main SDK class (legacy)
 export { TealTiger } from './client/TealTiger';
 

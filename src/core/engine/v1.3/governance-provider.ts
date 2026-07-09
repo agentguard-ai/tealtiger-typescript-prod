@@ -28,7 +28,7 @@ export type { GovernanceProvider, EvaluationContext, CapabilityManifest, PolicyB
 
 // ── SDK Version Constants ────────────────────────────────────────
 
-const SDK_VERSION = '1.3.0';
+const SDK_VERSION = '1.4.0';
 const TEEC_VERSION = '2.0.0';
 
 // ── Supported Modules and Features ──────────────────────────────

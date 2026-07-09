@@ -131,7 +131,7 @@ export class SIEMExporter {
     const version = 0;
     const vendor = 'TealTiger';
     const product = 'GovernanceEngine';
-    const deviceVersion = '1.3.0';
+    const deviceVersion = '1.4.0';
     const signatureId = entry.reason_codes[0] ?? 'governance.decision';
     const name = `Governance Decision: ${entry.decision_outcome}`;
     const severity = this.cefSeverity(entry.risk_score);
@@ -162,7 +162,7 @@ export class SIEMExporter {
     const version = '2.0';
     const vendor = 'TealTiger';
     const product = 'GovernanceEngine';
-    const productVersion = '1.3.0';
+    const productVersion = '1.4.0';
     const eventId = entry.reason_codes[0] ?? 'governance.decision';
 
     // LEEF uses tab-separated key=value pairs

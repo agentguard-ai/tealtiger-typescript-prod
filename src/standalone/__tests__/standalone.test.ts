@@ -292,7 +292,7 @@ describe('GovernanceProvider — Portable Interface', () => {
 
       const capabilities = provider.getCapabilities();
 
-      expect(capabilities.sdk_version).toBe('1.3.0');
+      expect(capabilities.sdk_version).toBe('1.4.0');
       expect(capabilities.teec_version).toBe('2.0.0');
       expect(Array.isArray(capabilities.supported_modules)).toBe(true);
       expect(Array.isArray(capabilities.supported_features)).toBe(true);
