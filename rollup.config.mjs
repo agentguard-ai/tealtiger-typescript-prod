@@ -2,13 +2,33 @@ import typescript from '@rollup/plugin-typescript';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
-import terser from '@rollup/plugin-terser';
 import analyzer from 'rollup-plugin-analyzer';
+import { builtinModules } from 'module';
+import { minify } from 'terser';
+
+const terser = (options = {}) => ({
+  name: 'terser',
+  async renderChunk(code, _chunk, outputOptions) {
+    const result = await minify(code, {
+      ...options,
+      sourceMap: outputOptions.sourcemap === true || typeof outputOptions.sourcemap === 'string',
+      module: outputOptions.format === 'es',
+      toplevel: outputOptions.format === 'cjs'
+    });
+
+    return {
+      code: result.code || code,
+      map: result.map ? JSON.parse(result.map) : null
+    };
+  }
+});
 
 const isAnalyze = process.env.ANALYZE === 'true';
+const nodeBuiltins = builtinModules.flatMap((moduleName) => [moduleName, `node:${moduleName}`]);
 
 // External dependencies that should not be bundled
 const external = [
+  ...nodeBuiltins,
   'openai',
   '@anthropic-ai/sdk',
   '@google/generative-ai',
