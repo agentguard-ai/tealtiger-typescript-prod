@@ -54,6 +54,8 @@ interface InternalState extends ObserveState {
   decisions: DecisionV21[];
 }
 
+type InterceptedMethod = (...args: unknown[]) => Promise<unknown> | unknown;
+
 
 /**
  * Check if a method path is in the intercept list.
@@ -149,12 +151,12 @@ function produceGovernanceDecision(
  * Create an intercepted method wrapper that runs the full instrumentation pipeline.
  */
 function createInterceptedMethod(
-  originalMethod: Function,
+  originalMethod: InterceptedMethod,
   target: object,
   state: InternalState,
   _methodName: string,
-): Function {
-  return async function observeInterceptor(...args: any[]) {
+): InterceptedMethod {
+  return async function observeInterceptor(...args: unknown[]) {
     const requestId = randomUUID();
     const correlationId = randomUUID();
     const registry = FreezeRegistry.getInstance();
@@ -305,7 +307,7 @@ function createRecursiveProxy<T extends object>(
       // If value is a function, check if it's an intercept target
       if (typeof value === 'function') {
         if (isInterceptTarget(state, propStr) || isInterceptTarget(state, currentPath)) {
-          return createInterceptedMethod(value, obj, state, propStr);
+          return createInterceptedMethod(value as InterceptedMethod, obj, state, propStr);
         }
         // Non-intercepted function — bind to original target
         return value.bind(obj);

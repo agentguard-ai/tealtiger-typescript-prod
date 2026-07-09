@@ -352,7 +352,7 @@ describe('SingletonFactory', () => {
       
       factory.getClient(config);
       
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 125));
       
       const stats = factory.getStats();
       expect(stats.instances[0].age).toBeGreaterThanOrEqual(100);

@@ -204,11 +204,9 @@ export class ContentModerationModule implements TealModule {
       for (const keyword of categoryKeywords) {
         const normalizedKeyword = keyword.toLowerCase();
         let searchStart = 0;
+        let index = normalizedContent.indexOf(normalizedKeyword, searchStart);
 
-        while (true) {
-          const index = normalizedContent.indexOf(normalizedKeyword, searchStart);
-          if (index === -1) break;
-
+        while (index !== -1) {
           // Calculate a score based on keyword length relative to content
           // Longer keyword matches receive higher confidence
           const score = Math.min(1.0, 0.6 + (normalizedKeyword.length / 50));
@@ -221,6 +219,7 @@ export class ContentModerationModule implements TealModule {
           });
 
           searchStart = index + normalizedKeyword.length;
+          index = normalizedContent.indexOf(normalizedKeyword, searchStart);
         }
       }
     }

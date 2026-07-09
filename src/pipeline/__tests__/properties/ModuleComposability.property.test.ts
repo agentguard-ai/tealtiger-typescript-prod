@@ -24,6 +24,7 @@
  * @module pipeline/__tests__/properties/ModuleComposability.property.test
  */
 
+import { randomUUID } from 'crypto';
 import * as fc from 'fast-check';
 import { StageEvaluator } from '../../StageEvaluator';
 import { DefensePipeline } from '../../DefensePipeline';
@@ -400,7 +401,7 @@ describe('Property 7: Module Composability Preservation', () => {
             );
 
             // Build the same request and context that DefensePipeline would build
-            const correlationId = request.correlation_id ?? crypto.randomUUID();
+            const correlationId = request.correlation_id ?? randomUUID();
             const evaluationRequest: ModuleEvaluationRequest = {
               content: typeof request.payload.content === 'string'
                 ? request.payload.content
