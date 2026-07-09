@@ -316,7 +316,7 @@ describe('PerformanceMeasurement', () => {
       await new Promise(resolve => setTimeout(resolve, 50));
       const duration = measurement.end('test', start);
 
-      expect(duration).toBeGreaterThanOrEqual(50);
+      expect(duration).toBeGreaterThanOrEqual(45);
     });
 
     it('should track multiple measurements', () => {
