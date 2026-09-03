@@ -110,6 +110,30 @@ const mainConfig = {
   }
 };
 
+const observeConfig = {
+  input: 'src/observe/format-cost.ts',
+  output: [
+    {
+      file: 'dist/subpaths/observe.js',
+      format: 'cjs',
+      sourcemap: true,
+      exports: 'named'
+    },
+    {
+      file: 'dist/subpaths/observe.esm.js',
+      format: 'esm',
+      sourcemap: true
+    }
+  ],
+  external,
+  plugins: [...commonPlugins, terser(terserConfig)],
+  treeshake: {
+    moduleSideEffects: false,
+    propertyReadSideEffects: false,
+    unknownGlobalSideEffects: false
+  }
+};
+
 // Provider-specific bundle configurations
 const providerConfigs = [
   {
@@ -219,6 +243,7 @@ const serverlessConfig = {
 
 export default [
   mainConfig,
+  observeConfig,
   ...providerConfigs,
   serverlessConfig
 ];

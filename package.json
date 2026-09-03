@@ -15,6 +15,11 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
+    "./observe": {
+      "import": "./dist/subpaths/observe.esm.js",
+      "require": "./dist/subpaths/observe.js",
+      "types": "./dist/observe/format-cost.d.ts"
+    },
     "./providers/openai": {
       "import": "./dist/providers/openai.mjs",
       "require": "./dist/providers/openai.js",
