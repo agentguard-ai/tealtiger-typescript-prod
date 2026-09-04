@@ -22,6 +22,7 @@
 // Public API
 export { observe } from './observe';
 export { freeze, unfreeze } from './freeze-registry';
+export { formatCost } from './format-cost';
 
 // Public types
 export type {

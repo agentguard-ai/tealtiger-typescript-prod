@@ -5,7 +5,7 @@
  */
 
 // ─── v1.4: observe() — Zero-Config Entry Point ──────────────────────────────
-export { observe, freeze, unfreeze } from './observe';
+export { observe, freeze, unfreeze, formatCost } from './observe';
 export type {
   ObserveConfig,
   ObserveProxy,
