@@ -97,6 +97,8 @@ export interface ObserveCostSummary {
   requestCount: number;
   /** Whether any request had pricing unavailable */
   hasPricingGaps: boolean;
+  /** Elapsed time in milliseconds since the observe() session started */
+  sessionDurationMs: number;
   /** Breakdown by cost category */
   breakdown: {
     inputCost: number;
