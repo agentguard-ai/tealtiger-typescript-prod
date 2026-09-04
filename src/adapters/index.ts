@@ -43,3 +43,10 @@ export {
   AzureFunctionResponse,
   AzureAdapterConfig,
 } from './azure-adapter';
+
+export {
+  toHeliconeHeaders,
+  withHeliconeHeaders,
+  HELICONE_PROPERTY_PREFIX,
+  HeliconeHeaderOptions,
+} from './helicone-adapter';

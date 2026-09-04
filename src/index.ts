@@ -211,6 +211,15 @@ export {
 // Configuration
 export { Configuration, DEFAULT_CONFIG } from './config/Configuration';
 
+// Helicone integration — project governance decisions into Helicone
+// custom-property headers for dashboard visibility.
+export {
+  toHeliconeHeaders,
+  withHeliconeHeaders,
+  HELICONE_PROPERTY_PREFIX
+} from './adapters/helicone-adapter';
+export type { HeliconeHeaderOptions } from './adapters/helicone-adapter';
+
 // Guardrails
 export {
   Guardrail,
@@ -279,4 +288,4 @@ export type {
 } from './clients';
 
 // Version
-export const VERSION = '1.4.1';
+export const VERSION = '1.5.0';

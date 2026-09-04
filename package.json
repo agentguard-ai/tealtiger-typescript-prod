@@ -1,6 +1,6 @@
 {
   "name": "tealtiger",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "TealTiger - Powerful protection for AI agents with cost tracking and security guardrails",
   "type": "commonjs",
   "main": "dist/index.js",
