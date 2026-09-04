@@ -279,4 +279,4 @@ export type {
 } from './clients';
 
 // Version
-export const VERSION = '0.2.2';
+export const VERSION = '1.4.1';

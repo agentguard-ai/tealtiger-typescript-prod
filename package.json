@@ -1,86 +1,87 @@
 {
   "name": "tealtiger",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "TealTiger - Powerful protection for AI agents with cost tracking and security guardrails",
+  "type": "commonjs",
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "bin": {
     "tealtiger": "dist/cli/test.js"
   },
   "exports": {
     ".": {
-      "import": "./dist/index.esm.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     },
     "./providers/openai": {
-      "import": "./dist/providers/openai.esm.js",
+      "import": "./dist/providers/openai.mjs",
       "require": "./dist/providers/openai.js",
       "types": "./dist/providers/openai.d.ts"
     },
     "./providers/anthropic": {
-      "import": "./dist/providers/anthropic.esm.js",
+      "import": "./dist/providers/anthropic.mjs",
       "require": "./dist/providers/anthropic.js",
       "types": "./dist/providers/anthropic.d.ts"
     },
     "./providers/gemini": {
-      "import": "./dist/providers/gemini.esm.js",
+      "import": "./dist/providers/gemini.mjs",
       "require": "./dist/providers/gemini.js",
       "types": "./dist/providers/gemini.d.ts"
     },
     "./providers/bedrock": {
-      "import": "./dist/providers/bedrock.esm.js",
+      "import": "./dist/providers/bedrock.mjs",
       "require": "./dist/providers/bedrock.js",
       "types": "./dist/providers/bedrock.d.ts"
     },
     "./providers/azure-openai": {
-      "import": "./dist/providers/azure-openai.esm.js",
+      "import": "./dist/providers/azure-openai.mjs",
       "require": "./dist/providers/azure-openai.js",
       "types": "./dist/providers/azure-openai.d.ts"
     },
     "./providers/cohere": {
-      "import": "./dist/providers/cohere.esm.js",
+      "import": "./dist/providers/cohere.mjs",
       "require": "./dist/providers/cohere.js",
       "types": "./dist/providers/cohere.d.ts"
     },
     "./providers/mistral": {
-      "import": "./dist/providers/mistral.esm.js",
+      "import": "./dist/providers/mistral.mjs",
       "require": "./dist/providers/mistral.js",
       "types": "./dist/providers/mistral.d.ts"
     },
     "./providers/groq": {
-      "import": "./dist/providers/groq.esm.js",
+      "import": "./dist/providers/groq.mjs",
       "require": "./dist/providers/groq.js",
       "types": "./dist/providers/groq.d.ts"
     },
     "./providers/deepseek": {
-      "import": "./dist/providers/deepseek.esm.js",
+      "import": "./dist/providers/deepseek.mjs",
       "require": "./dist/providers/deepseek.js",
       "types": "./dist/providers/deepseek.d.ts"
     },
     "./providers/together": {
-      "import": "./dist/providers/together.esm.js",
+      "import": "./dist/providers/together.mjs",
       "require": "./dist/providers/together.js",
       "types": "./dist/providers/together.d.ts"
     },
     "./providers/hf-tgi": {
-      "import": "./dist/providers/hf-tgi.esm.js",
+      "import": "./dist/providers/hf-tgi.mjs",
       "require": "./dist/providers/hf-tgi.js",
       "types": "./dist/providers/hf-tgi.d.ts"
     },
     "./providers/xai": {
-      "import": "./dist/providers/xai.esm.js",
+      "import": "./dist/providers/xai.mjs",
       "require": "./dist/providers/xai.js",
       "types": "./dist/providers/xai.d.ts"
     },
     "./providers/ollama": {
-      "import": "./dist/providers/ollama.esm.js",
+      "import": "./dist/providers/ollama.mjs",
       "require": "./dist/providers/ollama.js",
       "types": "./dist/providers/ollama.d.ts"
     },
     "./serverless": {
-      "import": "./dist/serverless.esm.js",
+      "import": "./dist/serverless.mjs",
       "require": "./dist/serverless.js",
       "types": "./dist/index.d.ts"
     }
