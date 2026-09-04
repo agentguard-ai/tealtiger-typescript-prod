@@ -50,6 +50,14 @@ const commonPlugins = [
   json(),
   typescript({
     tsconfig: './tsconfig.json',
+    // Rollup can only bundle when TypeScript emits ES modules; the shared
+    // tsconfig targets CommonJS (for tsc type emit + tests), so override it
+    // here. Without this, every internal `./` import is left as a runtime
+    // require() and the published bundle breaks (e.g. `Cannot find module
+    // './observe'`).
+    compilerOptions: {
+      module: 'ESNext'
+    },
     declaration: false,
     declarationMap: false,
     sourceMap: true,
@@ -84,7 +92,7 @@ const mainConfig = {
       exports: 'named'
     },
     {
-      file: 'dist/index.esm.js',
+      file: 'dist/index.mjs',
       format: 'esm',
       sourcemap: true
     }
@@ -154,7 +162,7 @@ const providerConfigs = [
       exports: 'named'
     },
     {
-      file: `dist/providers/${name}.esm.js`,
+      file: `dist/providers/${name}.mjs`,
       format: 'esm',
       sourcemap: true
     }
@@ -183,7 +191,7 @@ const serverlessConfig = {
       exports: 'named'
     },
     {
-      file: 'dist/serverless.esm.js',
+      file: 'dist/serverless.mjs',
       format: 'esm',
       sourcemap: false
     }

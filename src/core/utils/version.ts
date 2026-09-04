@@ -7,8 +7,17 @@
  * @module version
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+/**
+ * Single source of truth for the SDK version.
+ *
+ * This is a build-time constant rather than a runtime `package.json` read.
+ * The previous implementation walked the filesystem from `__dirname`, which
+ * is unreliable in a bundled build (the whole SDK is a single file) and does
+ * not exist at all under ES modules — importing the ESM build threw
+ * `ReferenceError: __dirname is not defined`. Keep this in sync with the
+ * `version` field in package.json (the release process updates both).
+ */
+export const PACKAGE_VERSION = '1.4.1';
 
 /**
  * Component version information
@@ -51,61 +60,9 @@ export function getPackageVersion(): string {
     return cachedVersion;
   }
 
-  try {
-    // Try to find package.json starting from current directory
-    let currentDir = __dirname;
-    let packageJsonPath: string | null = null;
-    let attempts = 0;
-    const maxAttempts = 10; // Prevent infinite loop
-
-    // Walk up the directory tree to find package.json
-    while (attempts < maxAttempts) {
-      const candidatePath = path.join(currentDir, 'package.json');
-      
-      if (fs.existsSync(candidatePath)) {
-        packageJsonPath = candidatePath;
-        break;
-      }
-
-      const parentDir = path.dirname(currentDir);
-      if (parentDir === currentDir) {
-        // Reached root directory
-        break;
-      }
-
-      currentDir = parentDir;
-      attempts++;
-    }
-
-    if (!packageJsonPath) {
-      // Fallback: try common locations
-      const fallbackPaths = [
-        path.join(process.cwd(), 'package.json'),
-        path.join(__dirname, '../../package.json'),
-        path.join(__dirname, '../../../package.json'),
-      ];
-
-      for (const fallbackPath of fallbackPaths) {
-        if (fs.existsSync(fallbackPath)) {
-          packageJsonPath = fallbackPath;
-          break;
-        }
-      }
-    }
-
-    if (packageJsonPath && fs.existsSync(packageJsonPath)) {
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-      const version = packageJson.version || '1.1.0';
-      cachedVersion = version;
-      return version;
-    }
-  } catch (error) {
-    // If reading fails, fall back to hardcoded version
-    console.warn('Failed to read package.json version, using fallback:', error);
-  }
-
-  // Fallback version if package.json cannot be read
-  cachedVersion = '1.1.0';
+  // Build-time constant — no filesystem access, so this works identically in
+  // CommonJS and ESM bundles and never depends on `__dirname` / cwd.
+  cachedVersion = PACKAGE_VERSION;
   return cachedVersion;
 }
 
