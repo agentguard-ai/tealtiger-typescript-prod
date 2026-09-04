@@ -17,7 +17,7 @@
  * `ReferenceError: __dirname is not defined`. Keep this in sync with the
  * `version` field in package.json (the release process updates both).
  */
-export const PACKAGE_VERSION = '1.4.1';
+export const PACKAGE_VERSION = '1.5.0';
 
 /**
  * Component version information
