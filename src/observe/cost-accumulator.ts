@@ -127,6 +127,7 @@ export class CostAccumulator {
       totalCost: 0,
       requestCount: 0,
       hasPricingGaps: false,
+      sessionDurationMs: 0,
       breakdown: { inputCost: 0, outputCost: 0, imageCost: 0, audioCost: 0 },
     };
   }

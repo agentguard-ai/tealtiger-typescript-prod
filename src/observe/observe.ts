@@ -39,6 +39,8 @@ import { PolicyMode, DecisionAction, ReasonCode } from '../core/engine/types';
  * Internal state for each observe() proxy instance.
  */
 interface InternalState extends ObserveState {
+  /** Wall-clock time when observe() was called */
+  startTime: number;
   costAccumulator: CostAccumulator;
   baseline: BehavioralBaseline;
   piiScanner: ObservePIIScanner;
@@ -291,8 +293,14 @@ function createRecursiveProxy<T extends object>(
       const propStr = String(prop);
 
       // Expose telemetry accessors
-      if (propStr === 'getCost') return () => state.costAccumulator.getSessionCost(state.sessionId);
-      if (propStr === 'getAgentCost') return () => state.costAccumulator.getAgentCost(state.agentId);
+      if (propStr === 'getCost') return () => ({
+        ...state.costAccumulator.getSessionCost(state.sessionId),
+        sessionDurationMs: Date.now() - state.startTime,
+      });
+      if (propStr === 'getAgentCost') return () => ({
+        ...state.costAccumulator.getAgentCost(state.agentId),
+        sessionDurationMs: Date.now() - state.startTime,
+      });
       if (propStr === 'getBaseline') return () => state.baseline.getBaseline();
       if (propStr === 'getAgentId') return () => state.agentId;
       if (propStr === 'getSessionId') return () => state.sessionId;
@@ -357,6 +365,8 @@ export function observe<T extends object>(
   client: T,
   config?: ObserveConfig,
 ): ObserveProxy<T> {
+  const startTime = Date.now();
+
   // Governance validation: if governance is enabled, seal_secret must be present
   if (config?.governance && !config.governance_seal_secret) {
     throw new SealConfigurationError(
@@ -371,6 +381,7 @@ export function observe<T extends object>(
   const state: InternalState = {
     agentId: config?.agentId ?? randomUUID(),
     sessionId: config?.sessionId ?? randomUUID(),
+    startTime,
     provider: providerSignature.provider,
     providerSignature,
     requestCount: 0,
