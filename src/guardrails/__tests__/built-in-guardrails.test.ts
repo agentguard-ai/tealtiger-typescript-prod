@@ -93,6 +93,35 @@ describe('PIIDetectionGuardrail', () => {
     expect(result.passed).toBe(false);
     expect(result.metadata.detections).toHaveLength(1);
   });
+
+  it('should throw on unknown detectTypes values', () => {
+    expect(() => new PIIDetectionGuardrail({ detectTypes: ['credit_card'] })).toThrow(
+      /Unknown PII detectType 'credit_card'\. Valid: email, phone, ssn, creditCard, name\./
+    );
+  });
+
+  it('should throw listing all unknown detectTypes values', () => {
+    expect(
+      () => new PIIDetectionGuardrail({ detectTypes: ['credit_card', 'email_address'] })
+    ).toThrow(/Unknown PII detectTypes 'credit_card', 'email_address'/);
+  });
+
+  it('should accept known detectTypes including name', async () => {
+    const guardrail = new PIIDetectionGuardrail({
+      detectTypes: ['email', 'phone', 'ssn', 'creditCard', 'name'],
+      action: 'block',
+    });
+    const result = await guardrail.evaluate('Card: 4532-1234-5678-9010');
+    expect(result.passed).toBe(false);
+    expect(result.metadata.detections[0].type).toBe('creditCard');
+  });
+
+  it('should keep default detectTypes working', async () => {
+    const guardrail = new PIIDetectionGuardrail();
+    const result = await guardrail.evaluate('Card: 4532-1234-5678-9010');
+    expect(result.passed).toBe(false);
+    expect(result.metadata.detections[0].type).toBe('creditCard');
+  });
 });
 
 describe('ContentModerationGuardrail', () => {
