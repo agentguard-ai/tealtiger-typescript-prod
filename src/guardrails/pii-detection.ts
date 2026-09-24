@@ -26,6 +26,12 @@ interface PIIDetection {
 }
 
 export interface PIIDetectionConfig extends GuardrailConfig {
+  /**
+   * PII types to scan for.
+   * Valid values: `email`, `phone`, `ssn`, `creditCard`, `name`.
+   * Default: `['email', 'phone', 'ssn', 'creditCard']`.
+   * Unknown values throw on construction.
+   */
   detectTypes?: string[];
   action?: 'block' | 'redact' | 'mask' | 'allow';
   riskScores?: Record<string, number>;
@@ -81,6 +87,7 @@ export class PIIDetectionGuardrail extends Guardrail {
     };
 
     this.detectTypes = config.detectTypes || ['email', 'phone', 'ssn', 'creditCard'];
+    this.assertKnownDetectTypes(this.detectTypes);
     this.action = config.action || 'block';
     this.riskScores = config.riskScores || {
       email: 30,
@@ -157,6 +164,23 @@ export class PIIDetectionGuardrail extends Guardrail {
       metadata,
       riskScore: maxRiskScore,
     });
+  }
+
+  /**
+   * Reject unknown detectTypes values at construction time.
+   * Patterns map is the single source of truth for allowed names.
+   */
+  private assertKnownDetectTypes(types: string[]): void {
+    const allowed = Object.keys(this.patterns);
+    const unknown = types.filter((type) => !Object.prototype.hasOwnProperty.call(this.patterns, type));
+    if (unknown.length === 0) {
+      return;
+    }
+    const listed = unknown.map((type) => `'${type}'`).join(', ');
+    const plural = unknown.length === 1 ? 'detectType' : 'detectTypes';
+    throw new Error(
+      `Unknown PII ${plural} ${listed}. Valid: ${allowed.join(', ')}.`
+    );
   }
 
   /**
