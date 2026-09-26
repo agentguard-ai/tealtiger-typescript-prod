@@ -152,6 +152,13 @@ const providerConfigs = [
     input: 'src/providers/ollama.ts',
     external: [...external]
   }
+  // NOTE: groq, deepseek, together, hf-tgi and xai are deliberately absent.
+  // They were listed in package.json#exports without ever being built here,
+  // so those subpaths resolved to files that do not exist in the published
+  // package. Their src/providers/*.ts implementations also mock the LLM call
+  // (`content: 'This is a mock response from TealGroq.'`) rather than calling
+  // the provider. The exports entries have been removed; re-add both the
+  // export and a bundle entry here only once real transport exists.
 ].map(({ name, input, external: providerExternal }) => ({
   input,
   output: [
@@ -168,6 +175,44 @@ const providerConfigs = [
     }
   ],
   external: providerExternal,
+  plugins: [
+    ...commonPlugins,
+    terser(terserConfig),
+    ...(isAnalyze ? [analyzer({ summaryOnly: true, limit: 10 })] : [])
+  ],
+  treeshake: {
+    moduleSideEffects: false,
+    propertyReadSideEffects: false,
+    unknownGlobalSideEffects: false
+  }
+}));
+
+// Internal subsystems now published as their own subpaths. Each already has a
+// hand-authored public-API barrel at src/<name>/index.ts. They are shipped as
+// separate entry points rather than re-exported from src/index.ts for two
+// reasons: it keeps them out of the main bundle's size budget, and `verify`
+// exports PolicyTestCase / PolicyTestResult / PolicyTestReport, which would
+// collide with the identically-named types from src/policy/PolicyTester.
+const subsystemConfigs = [
+  { name: 'reliability', input: 'src/reliability/index.ts' },
+  { name: 'secrets', input: 'src/secrets/index.ts' },
+  { name: 'verify', input: 'src/verify/index.ts' }
+].map(({ name, input }) => ({
+  input,
+  output: [
+    {
+      file: `dist/${name}.js`,
+      format: 'cjs',
+      sourcemap: true,
+      exports: 'named'
+    },
+    {
+      file: `dist/${name}.mjs`,
+      format: 'esm',
+      sourcemap: true
+    }
+  ],
+  external,
   plugins: [
     ...commonPlugins,
     terser(terserConfig),
@@ -220,5 +265,6 @@ const serverlessConfig = {
 export default [
   mainConfig,
   ...providerConfigs,
+  ...subsystemConfigs,
   serverlessConfig
 ];
