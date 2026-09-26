@@ -50,35 +50,25 @@
       "require": "./dist/providers/mistral.js",
       "types": "./dist/providers/mistral.d.ts"
     },
-    "./providers/groq": {
-      "import": "./dist/providers/groq.mjs",
-      "require": "./dist/providers/groq.js",
-      "types": "./dist/providers/groq.d.ts"
-    },
-    "./providers/deepseek": {
-      "import": "./dist/providers/deepseek.mjs",
-      "require": "./dist/providers/deepseek.js",
-      "types": "./dist/providers/deepseek.d.ts"
-    },
-    "./providers/together": {
-      "import": "./dist/providers/together.mjs",
-      "require": "./dist/providers/together.js",
-      "types": "./dist/providers/together.d.ts"
-    },
-    "./providers/hf-tgi": {
-      "import": "./dist/providers/hf-tgi.mjs",
-      "require": "./dist/providers/hf-tgi.js",
-      "types": "./dist/providers/hf-tgi.d.ts"
-    },
-    "./providers/xai": {
-      "import": "./dist/providers/xai.mjs",
-      "require": "./dist/providers/xai.js",
-      "types": "./dist/providers/xai.d.ts"
-    },
     "./providers/ollama": {
       "import": "./dist/providers/ollama.mjs",
       "require": "./dist/providers/ollama.js",
       "types": "./dist/providers/ollama.d.ts"
+    },
+    "./reliability": {
+      "import": "./dist/reliability.mjs",
+      "require": "./dist/reliability.js",
+      "types": "./dist/reliability/index.d.ts"
+    },
+    "./secrets": {
+      "import": "./dist/secrets.mjs",
+      "require": "./dist/secrets.js",
+      "types": "./dist/secrets/index.d.ts"
+    },
+    "./verify": {
+      "import": "./dist/verify.mjs",
+      "require": "./dist/verify.js",
+      "types": "./dist/verify/index.d.ts"
     },
     "./serverless": {
       "import": "./dist/serverless.mjs",
