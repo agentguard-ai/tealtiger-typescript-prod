@@ -7,27 +7,121 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Use Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18.x'
         registry-url: 'https://registry.npmjs.org'
-    
+
+    # `npm ci` rather than `npm install`: install exactly what package-lock.json
+    # pins, so the published artifact is built against the dependency versions
+    # that were actually tested. `npm install` is free to resolve newer ones.
     - name: Install dependencies
-      run: npm install
-    
+      run: npm ci
+
+    # The release tag is the human's statement of what is being published.
+    # package.json#version is what npm will actually publish under. If they
+    # disagree, the tag is lying about the artifact — stop before anything ships.
+    #
+    # src/index.ts also exports a hardcoded VERSION constant duplicating
+    # package.json. That duplication is a known defect (it drifted on the Python
+    # side: a hardcoded __version__ and pyproject.toml both read 1.4.0 while
+    # 1.4.1 was live on PyPI). Checking it here is the release-time guard that
+    # makes the duplication safe.
+    - name: Verify version consistency (tag, package.json, src/index.ts)
+      run: |
+        set -euo pipefail
+        TAG="${GITHUB_REF_NAME#v}"
+        PKG="$(node -p "require('./package.json').version")"
+        SRC="$(node -p "
+          const fs = require('fs');
+          const m = fs.readFileSync('src/index.ts', 'utf8')
+            .match(/export const VERSION = '([^']+)'/);
+          m ? m[1] : 'NOT_FOUND';
+        ")"
+        echo "release tag      : $TAG"
+        echo "package.json     : $PKG"
+        echo "src/index.ts     : $SRC"
+        fail=0
+        if [ "$TAG" != "$PKG" ]; then
+          echo "::error::Release tag ($TAG) does not match package.json version ($PKG)."
+          fail=1
+        fi
+        if [ "$SRC" != "$PKG" ]; then
+          echo "::error::src/index.ts VERSION ($SRC) does not match package.json version ($PKG). Bump both."
+          fail=1
+        fi
+        exit $fail
+
+    # Previously `npm run build || true`. That swallowed build failures, and
+    # because dist/ is gitignored (absent from a fresh checkout), `files` is
+    # ["dist/**/*", ...], and prepublishOnly is disabled, a failed build meant
+    # `npm publish` shipped a package containing only README and LICENSE.
+    #
+    # npm does not allow republishing a version, so that mistake is permanent.
+    # The build must be able to stop the release.
     - name: Build
-      run: npm run build || true
-    
+      run: npm run build
+
+    - name: Test
+      run: npm test
+
+    # Asserts the package is actually publishable before it is published: every
+    # subpath in package.json#exports must resolve to a file that exists in
+    # dist/. This is the check that would have caught the five provider subpaths
+    # (./providers/{groq,deepseek,together,hf-tgi,xai}) which were listed in
+    # exports but never built by rollup — they shipped to npm as
+    # module-not-found errors for consumers.
+    - name: Verify every exports target resolves
+      run: |
+        node -e "
+          const fs = require('fs');
+          const pkg = require('./package.json');
+          let missing = 0, resolved = 0;
+          for (const [subpath, conditions] of Object.entries(pkg.exports || {})) {
+            for (const [condition, target] of Object.entries(conditions)) {
+              const file = target.replace(/^\.\//, '');
+              if (fs.existsSync(file)) {
+                resolved++;
+              } else {
+                console.error('::error::exports[\"' + subpath + '\"][\"' + condition + '\"] -> ' + target + ' does not exist after build');
+                missing++;
+              }
+            }
+          }
+          console.log('exports targets resolved: ' + resolved + ', missing: ' + missing);
+          if (missing > 0) {
+            console.error('::error::Refusing to publish: ' + missing + ' exports target(s) missing from dist/.');
+            process.exit(1);
+          }
+        "
+
+    # Guards the inverse of the above: dist/ present but effectively empty.
+    # `files` is dist-only, so an empty dist means a package with no code.
+    - name: Verify dist is not empty
+      run: |
+        set -euo pipefail
+        count="$(find dist -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.d.ts' \) | wc -l)"
+        echo "dist/ contains $count js/mjs/d.ts files"
+        if [ "$count" -lt 1 ]; then
+          echo "::error::dist/ contains no build output. Refusing to publish."
+          exit 1
+        fi
+
+    # Final dry run: shows exactly what would be uploaded, and fails on a
+    # malformed package before the real publish.
+    - name: Pack dry-run (shows published contents)
+      run: npm publish --dry-run --access public
+
     - name: Publish to npm
       run: npm publish --access public
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-    
+
     - name: Create GitHub Release Assets
       uses: softprops/action-gh-release@v1
       with:
