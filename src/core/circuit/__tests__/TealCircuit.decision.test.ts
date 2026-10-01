@@ -8,6 +8,7 @@
 import { TealCircuit } from '../TealCircuit';
 import { DecisionAction, ReasonCode, PolicyMode } from '../../engine/types';
 import { ContextManager } from '../../context/ContextManager';
+import { PACKAGE_VERSION } from '../../utils/version';
 
 describe('TealCircuit - Decision Object', () => {
   describe('checkCircuit method', () => {
@@ -27,7 +28,7 @@ describe('TealCircuit - Decision Object', () => {
       expect(decision.correlation_id).toBe(context.correlation_id);
       expect(decision.mode).toBe(PolicyMode.ENFORCE);
       expect(decision.policy_id).toBe('circuit.breaker');
-      expect(decision.policy_version).toBe('1.4.0');
+      expect(decision.policy_version).toBe(PACKAGE_VERSION);
       expect(decision.component_versions).toBeDefined();
       expect(decision.component_versions.circuit).toBeDefined();
       expect(decision.reason).toContain('closed');

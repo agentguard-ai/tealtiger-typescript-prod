@@ -8,16 +8,27 @@
  */
 
 /**
- * Single source of truth for the SDK version.
+ * Single source of truth for the SDK version within `src/`.
  *
  * This is a build-time constant rather than a runtime `package.json` read.
  * The previous implementation walked the filesystem from `__dirname`, which
  * is unreliable in a bundled build (the whole SDK is a single file) and does
  * not exist at all under ES modules — importing the ESM build threw
- * `ReferenceError: __dirname is not defined`. Keep this in sync with the
- * `version` field in package.json (the release process updates both).
+ * `ReferenceError: __dirname is not defined`.
+ *
+ * Everything in `src/` that needs the SDK version must read it from here —
+ * notably the public `VERSION` export in `src/index.ts`, which re-exports this
+ * constant rather than repeating the literal. Tests must assert against this
+ * constant too; hardcoded version literals in tests silently rot and then fail
+ * the release, which is exactly what blocked the 1.6.0 publish.
+ *
+ * The one remaining duplicate is the `version` field in package.json, which
+ * cannot import from here. The `version-consistency` job in
+ * `.github/workflows/publish.yml` fails the release if the git tag,
+ * package.json and this constant disagree, so the duplication cannot drift
+ * past a publish undetected.
  */
-export const PACKAGE_VERSION = '1.5.0';
+export const PACKAGE_VERSION = '1.6.0';
 
 /**
  * Component version information
