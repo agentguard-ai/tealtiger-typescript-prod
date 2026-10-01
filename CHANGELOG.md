@@ -7,6 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - unreleased
+
+### Added — three subsystems are now actually importable
+- **`tealtiger/reliability`** — `TealReliability`, retry budgets, circuit breakers,
+  fallback chains.
+- **`tealtiger/secrets`** — `TealSecrets`, confidence scoring, credential TTL,
+  detection cache, and eight detector-pattern libraries (AI providers, cloud,
+  database, infrastructure, payments, SaaS, VCS, generic).
+- **`tealtiger/verify`** — red-team harness, golden test runner, TEEC validation
+  runner, and SARIF / JUnit / JSON evidence exporters.
+
+  These were **announced as added in 1.2.0 but exported from nowhere**: absent from
+  `src/index.ts` and absent from `package.json#exports`. No consumer could import
+  them for four minor versions despite the changelog listing them. They now ship as
+  subpath exports with their own rollup bundle entries.
+
+  Shipped as separate entry points rather than re-exported from the root for two
+  reasons: it keeps them out of the main bundle's size budget, and `verify` exports
+  `PolicyTestCase` / `PolicyTestResult` / `PolicyTestReport`, which would collide
+  with the identically-named types from `src/policy/PolicyTester`.
+
+### Removed — five provider subpaths that never worked
+- `tealtiger/providers/groq`, `/deepseek`, `/together`, `/hf-tgi` and `/xai` are no
+  longer published.
+
+  They were listed in `package.json#exports` but **never built**: `rollup.config.mjs`
+  only emits bundles for `openai`, `anthropic`, `gemini`, `bedrock`, `azure-openai`,
+  `cohere`, `mistral` and `ollama`. Importing any of the five resolved to a `dist/`
+  file that does not exist in the published package — a module-not-found error, live
+  on npm since they were first listed.
+
+  Their `src/providers/*.ts` implementations are also not usable: each mocks the LLM
+  call rather than calling the provider. `groq.ts` returns
+  `content: 'This is a mock response from TealGroq.'` beneath a comment reading
+  "In production, this would use the actual Groq SDK or fetch". None of the five
+  imports a provider SDK or HTTP client.
+
+  **No migration is required** — nothing could have been depending on them, because
+  they could not be imported. The source files remain in the tree with a note in
+  `rollup.config.mjs` recording what must be true before they return: re-add the
+  export and the bundle entry together, once real transport exists.
+
+### Fixed — repository metadata pointed at a repo that does not exist
+- `repository.url` and `bugs.url` read `agentguard-ai/tealtiger-typescript`. No such
+  repository exists under the organisation — only `-prod` and `-staging`. Both now
+  point at `agentguard-ai/tealtiger-typescript-prod`, along with four README links.
+
+## [1.5.0] / [1.4.0] / [1.3.0] — undocumented
+
+> All three were published to npm with no changelog entry, no git tag, and no GitHub
+> Release. Tags stop at `v1.2.0`; GitHub Releases stop at `v1.1.1`.
+>
+> `publish.yml` triggers on `release: types: [created]`, so it has been dormant since
+> April 2026 and these were published by hand. Contents were not reconstructed.
+
 ## [1.2.0] - 2026-05-04
 
 ### Added — Governance Bundle
