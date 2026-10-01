@@ -315,13 +315,15 @@ export type {
 
 // Version
 //
-// NOTE: this duplicates `version` in package.json and must be bumped with it.
-// Keeping it in sync is currently manual — see the drift this caused on the
-// Python side, where a hardcoded __version__ and pyproject.toml both read 1.4.0
-// while 1.4.1 was live on PyPI.
+// Re-exported from `core/utils/version` rather than repeated as a literal.
+// There used to be three copies of the version string in this repo — this
+// export, `PACKAGE_VERSION`, and package.json — and they drifted: package.json
+// and this file said 1.6.0 while `PACKAGE_VERSION` still said 1.5.0, which
+// failed the release test gate. `PACKAGE_VERSION` is now the only literal in
+// `src/`, and publish.yml fails the release if it disagrees with the git tag
+// or package.json.
 //
-// It is left as a literal rather than read from package.json because importing
-// package.json into the bundle would pull it into every consumer's build and
-// change the published surface. A release-time check or a generated file is the
-// right fix; until then, bump both.
-export const VERSION = '1.6.0';
+// It is not read from package.json at runtime because importing package.json
+// into the bundle would pull it into every consumer's build and change the
+// published surface.
+export { PACKAGE_VERSION as VERSION } from './core/utils/version';

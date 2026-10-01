@@ -6,6 +6,7 @@ function summary(overrides: Partial<ObserveCostSummary> = {}): ObserveCostSummar
     totalCost: 0,
     requestCount: 0,
     hasPricingGaps: false,
+    sessionDurationMs: 0,
     breakdown: {
       inputCost: 0,
       outputCost: 0,

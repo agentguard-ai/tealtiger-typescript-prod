@@ -27,35 +27,57 @@ jobs:
     # package.json#version is what npm will actually publish under. If they
     # disagree, the tag is lying about the artifact — stop before anything ships.
     #
-    # src/index.ts also exports a hardcoded VERSION constant duplicating
-    # package.json. That duplication is a known defect (it drifted on the Python
-    # side: a hardcoded __version__ and pyproject.toml both read 1.4.0 while
-    # 1.4.1 was live on PyPI). Checking it here is the release-time guard that
-    # makes the duplication safe.
-    - name: Verify version consistency (tag, package.json, src/index.ts)
+    # src/core/utils/version.ts holds PACKAGE_VERSION, the only version literal
+    # in src/. Everything else in src/ (including the public VERSION export in
+    # src/index.ts) reads it from there, so this is the one file that has to
+    # agree with package.json.
+    #
+    # The earlier version of this check only compared the tag, package.json and
+    # a hardcoded literal in src/index.ts. It passed for the 1.6.0 release while
+    # PACKAGE_VERSION was still 1.5.0, and the Test step caught the mismatch
+    # instead — late, and only by accident, because two tests happened to assert
+    # version strings. The check now reads the constant that actually feeds the
+    # Decision objects and audit events.
+    - name: Verify version consistency (tag, package.json, PACKAGE_VERSION)
       run: |
         set -euo pipefail
         TAG="${GITHUB_REF_NAME#v}"
         PKG="$(node -p "require('./package.json').version")"
         SRC="$(node -p "
           const fs = require('fs');
-          const m = fs.readFileSync('src/index.ts', 'utf8')
-            .match(/export const VERSION = '([^']+)'/);
+          const m = fs.readFileSync('src/core/utils/version.ts', 'utf8')
+            .match(/export const PACKAGE_VERSION = '([^']+)'/);
           m ? m[1] : 'NOT_FOUND';
         ")"
-        echo "release tag      : $TAG"
-        echo "package.json     : $PKG"
-        echo "src/index.ts     : $SRC"
+        echo "release tag              : $TAG"
+        echo "package.json             : $PKG"
+        echo "PACKAGE_VERSION          : $SRC"
         fail=0
         if [ "$TAG" != "$PKG" ]; then
           echo "::error::Release tag ($TAG) does not match package.json version ($PKG)."
           fail=1
         fi
-        if [ "$SRC" != "$PKG" ]; then
-          echo "::error::src/index.ts VERSION ($SRC) does not match package.json version ($PKG). Bump both."
+        if [ "$SRC" = "NOT_FOUND" ]; then
+          echo "::error::Could not find PACKAGE_VERSION in src/core/utils/version.ts. The release gate cannot verify the version — fix this check before publishing."
+          fail=1
+        elif [ "$SRC" != "$PKG" ]; then
+          echo "::error::PACKAGE_VERSION ($SRC) does not match package.json version ($PKG). Bump src/core/utils/version.ts."
           fail=1
         fi
         exit $fail
+
+    # Guard against reintroducing a second version literal in src/. VERSION in
+    # src/index.ts must stay a re-export of PACKAGE_VERSION; the moment someone
+    # writes the number out again, the two can drift and the check above stops
+    # telling the whole truth.
+    - name: Verify src/ has exactly one version literal
+      run: |
+        set -euo pipefail
+        if grep -rn --include='*.ts' "export const VERSION = '" src/; then
+          echo "::error::A hardcoded VERSION literal was reintroduced in src/. Re-export PACKAGE_VERSION from src/core/utils/version.ts instead."
+          exit 1
+        fi
+        echo "OK: PACKAGE_VERSION is the only version literal in src/."
 
     # Previously `npm run build || true`. That swallowed build failures, and
     # because dist/ is gitignored (absent from a fresh checkout), `files` is

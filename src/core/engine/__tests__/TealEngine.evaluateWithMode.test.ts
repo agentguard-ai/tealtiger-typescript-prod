@@ -20,6 +20,7 @@ import {
   ReasonCode 
 } from '../types';
 import { ContextManager } from '../../context/ContextManager';
+import { PACKAGE_VERSION } from '../../utils/version';
 
 describe('TealEngine.evaluateWithMode()', () => {
   describe('REPORT_ONLY Mode', () => {
@@ -285,8 +286,8 @@ describe('TealEngine.evaluateWithMode()', () => {
 
       const decision = engine.evaluateWithMode(context);
 
-      expect(decision.component_versions.sdk).toBe('1.4.0');
-      expect(decision.component_versions.engine).toBe('1.4.0');
+      expect(decision.component_versions.sdk).toBe(PACKAGE_VERSION);
+      expect(decision.component_versions.engine).toBe(PACKAGE_VERSION);
     });
 
     it('should include evaluation metadata', () => {
