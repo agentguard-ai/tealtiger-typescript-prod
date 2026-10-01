@@ -288,4 +288,14 @@ export type {
 } from './clients';
 
 // Version
-export const VERSION = '1.5.0';
+//
+// NOTE: this duplicates `version` in package.json and must be bumped with it.
+// Keeping it in sync is currently manual — see the drift this caused on the
+// Python side, where a hardcoded __version__ and pyproject.toml both read 1.4.0
+// while 1.4.1 was live on PyPI.
+//
+// It is left as a literal rather than read from package.json because importing
+// package.json into the bundle would pull it into every consumer's build and
+// change the published surface. A release-time check or a generated file is the
+// right fix; until then, bump both.
+export const VERSION = '1.6.0';

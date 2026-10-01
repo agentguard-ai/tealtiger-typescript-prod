@@ -340,16 +340,16 @@ TealTiger v1.2.0 covers **7 out of 10** OWASP ASIs through its SDK-only architec
 
 - [Full Documentation](https://docs.tealtiger.ai)
 - [API Reference](https://docs.tealtiger.ai/api)
-- [Examples](https://github.com/agentguard-ai/tealtiger-typescript/tree/main/examples)
-- [Changelog](https://github.com/agentguard-ai/tealtiger-typescript/blob/main/CHANGELOG.md)
+- [Examples](https://github.com/agentguard-ai/tealtiger-typescript-prod/tree/main/examples)
+- [Changelog](https://github.com/agentguard-ai/tealtiger-typescript-prod/blob/main/CHANGELOG.md)
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](https://github.com/agentguard-ai/tealtiger-typescript/blob/main/CONTRIBUTING.md).
+We welcome contributions! Please see our [Contributing Guide](https://github.com/agentguard-ai/tealtiger-typescript-prod/blob/main/CONTRIBUTING.md).
 
 ## 📄 License
 
-Apache 2.0 — see [LICENSE](https://github.com/agentguard-ai/tealtiger-typescript/blob/main/LICENSE)
+Apache 2.0 — see [LICENSE](https://github.com/agentguard-ai/tealtiger-typescript-prod/blob/main/LICENSE)
 
 ## 🔗 Links
 
