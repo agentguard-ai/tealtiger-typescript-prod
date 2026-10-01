@@ -11,18 +11,33 @@
 
   [![npm version](https://badge.fury.io/js/tealtiger.svg)](https://www.npmjs.com/package/tealtiger)
   [![npm downloads](https://img.shields.io/npm/dm/tealtiger.svg)](https://www.npmjs.com/package/tealtiger)
-  [![Tests](https://github.com/agentguard-ai/tealtiger-sdk/actions/workflows/test.yml/badge.svg)](https://github.com/agentguard-ai/tealtiger-sdk/actions/workflows/test.yml)
+  [![Tests](https://github.com/agentguard-ai/tealtiger-typescript-prod/actions/workflows/test.yml/badge.svg)](https://github.com/agentguard-ai/tealtiger-typescript-prod/actions/workflows/test.yml)
   [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
   [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
-  [![v1.4.0](https://img.shields.io/badge/version-v1.4.0-teal.svg)](https://www.npmjs.com/package/tealtiger)
+  [![v1.6.0](https://img.shields.io/badge/version-v1.6.0-teal.svg)](https://www.npmjs.com/package/tealtiger)
   [![Discord](https://img.shields.io/badge/Discord-Join%20Community-7289da?logo=discord&logoColor=white)](https://discord.gg/X2ePf8QAj)
 </div>
 
 > 📖 **[Read the introduction blog post](https://dev.to/nagasatish_chilakamarti_2/introducing-tealtiger-ai-security-cost-control-made-simple-4lma)** | 📚 **[Documentation](https://docs.tealtiger.ai)**
 
-## What's New in v1.4.0 — Observe Mode (Zero-Config Adoption)
+## What's New in v1.6.0
 
-TealTiger v1.4 introduces **`observe()` — one line to instrument any LLM client** with full visibility and an instant kill switch:
+- **`tealtiger/reliability`, `tealtiger/secrets`, `tealtiger/verify` are now importable.**
+  All three shipped in the package but were exported from nowhere, so no consumer
+  could reach them. Retry budgets and circuit breakers, secret detection with
+  confidence scoring, and the red-team / golden-test / SARIF evidence tooling.
+- **`PolicyMode`, `DecisionAction` and `ReasonCode` are usable as values.** They are
+  enums, but were re-exported as types only, so `PolicyMode.ENFORCE` did not work.
+- **Every provider subpath now delivers its client.** `tealtiger/providers/mistral`
+  and `tealtiger/providers/cohere` resolved but omitted `TealMistral` and
+  `TealCohere`. `TealMultiProvider` is also exported now.
+- **Removed five provider subpaths that never worked** —
+  `providers/{groq,deepseek,together,hf-tgi,xai}` were listed in `exports` but
+  never built, so importing them failed with module-not-found.
+
+## Observe Mode (Zero-Config Adoption)
+
+**`observe()` — one line to instrument any LLM client** with full visibility and an instant kill switch:
 
 - **`observe(client)`** — Zero-config proxy wrapping for any of 12 supported LLM providers
 - **Automatic Cost Tracking** — Per-request, per-session, per-agent cost accumulation across all providers
@@ -34,7 +49,7 @@ TealTiger v1.4 introduces **`observe()` — one line to instrument any LLM clien
 - **Under 5ms overhead** — All instrumentation is in-process, deterministic, and offline-capable
 
 ```bash
-npm install tealtiger@1.4.0
+npm install tealtiger
 ```
 
 ## 🚀 Quick Start
@@ -69,17 +84,24 @@ console.log('Guardrails passed:', response.security?.guardrailResult?.passed);
 
 ## 🌐 Supported Providers
 
-95%+ market coverage with 7 LLM providers:
+Eight guarded provider clients. Four are available from the package root; the rest
+import from their provider subpath, which also keeps bundles smaller.
 
-| Provider | Client | Models | Features |
-|----------|--------|--------|----------|
-| **OpenAI** | `TealOpenAI` | GPT-4, GPT-3.5 Turbo | Chat, Completions, Embeddings |
-| **Anthropic** | `TealAnthropic` | Claude 3, Claude 2 | Chat, Streaming |
-| **Google** | `TealGemini` | Gemini Pro, Ultra | Multimodal, Safety Settings |
-| **AWS** | `TealBedrock` | Claude, Titan, Jurassic, Command, Llama | Multi-model, Regional |
-| **Azure** | `TealAzureOpenAI` | GPT-4, GPT-3.5 | Deployment-based, Azure AD |
-| **Mistral** | `TealMistral` | Large, Medium, Small, Mixtral | EU Data Residency, GDPR |
-| **Cohere** | `TealCohere` | Command, Embed | RAG, Citations, Connectors |
+| Provider | Client | Import from | Models |
+|----------|--------|-------------|--------|
+| **OpenAI** | `TealOpenAI` | `tealtiger` | GPT-4, GPT-3.5 Turbo |
+| **Anthropic** | `TealAnthropic` | `tealtiger` | Claude 3, Claude 2 |
+| **Azure** | `TealAzureOpenAI` | `tealtiger` | GPT-4, GPT-3.5 |
+| **Ollama** | `TealOllama` | `tealtiger` | Local / self-hosted models |
+| **Google** | `TealGemini` | `tealtiger/providers/gemini` | Gemini Pro, Ultra |
+| **AWS** | `TealBedrock` | `tealtiger/providers/bedrock` | Claude, Titan, Jurassic, Command, Llama |
+| **Mistral** | `TealMistral` | `tealtiger/providers/mistral` | Large, Medium, Small, Mixtral |
+| **Cohere** | `TealCohere` | `tealtiger/providers/cohere` | Command, Embed |
+
+```typescript
+import { TealOpenAI } from 'tealtiger';
+import { TealGemini } from 'tealtiger/providers/gemini';
+```
 
 ### Multi-Provider Orchestration
 
@@ -168,7 +190,7 @@ Client-side guardrails that run in milliseconds with no server dependency:
 ```typescript
 import { GuardrailEngine, PIIDetectionGuardrail, PromptInjectionGuardrail, ContentModerationGuardrail } from 'tealtiger';
 
-const engine = new GuardrailEngine({ mode: 'parallel', timeout: 5000 });
+const engine = new GuardrailEngine({ parallelExecution: true, timeout: 5000 });
 
 engine.registerGuardrail(new PIIDetectionGuardrail({ action: 'redact' }));
 engine.registerGuardrail(new PromptInjectionGuardrail({ sensitivity: 'high' }));
@@ -189,9 +211,9 @@ Cascading failure prevention with automatic failover:
 import { TealCircuit } from 'tealtiger';
 
 const circuit = new TealCircuit({
-  failureThreshold: 5,
-  resetTimeout: 30000,
-  monitorInterval: 10000
+  failureThreshold: 5,     // consecutive failures before opening
+  timeout: 30000,          // ms to wait before attempting to close
+  halfOpenRequests: 3      // successes in half-open before closing
 });
 
 // Wraps provider calls with circuit breaker protection
@@ -205,10 +227,10 @@ const response = await circuit.execute(() =>
 Versioned audit events with security-by-default PII redaction:
 
 ```typescript
-import { TealAudit, RedactionLevel } from 'tealtiger';
+import { TealAudit, RedactionLevel, ConsoleOutput } from 'tealtiger';
 
 const audit = new TealAudit({
-  outputs: [new FileOutput('./audit.log')],
+  outputs: [new ConsoleOutput()],   // or CustomOutput for your own sink
   config: {
     input_redaction: RedactionLevel.HASH,    // SHA-256 hash + size (default)
     output_redaction: RedactionLevel.HASH,
@@ -251,27 +273,28 @@ const events = audit.query({ correlation_id: context.correlation_id });
 Validate policy behavior before production deployment:
 
 ```typescript
-import { PolicyTester, TestCorpora } from 'tealtiger';
+import { PolicyTester } from 'tealtiger';
 
-const tester = new PolicyTester(engine);
-const report = tester.runSuite({
-  name: 'Customer Support Policy Tests',
-  tests: [
-    {
-      name: 'Block file deletion',
-      context: { agentId: 'support-001', action: 'tool.execute', tool: 'file_delete' },
-      expected: { action: DecisionAction.DENY, reason_codes: [ReasonCode.TOOL_NOT_ALLOWED] }
-    },
-    ...TestCorpora.promptInjection(),
-    ...TestCorpora.piiDetection()
-  ]
+// PolicyTester holds the policies under test — not an engine.
+const tester = new PolicyTester(myPolicies);
+
+// Check a single request against the loaded policies
+const result = tester.testRequest({
+  toolName: 'file_delete',
+  parameters: {},
+  context: { agentId: 'support-001' }
 });
+console.log('Allowed:', result.allowed);
 
-console.log(`Tests: ${report.passed}/${report.total} passed`);
+// Or run a suite of requests
+const report = tester.runTestSuite(myTestSuite);
 
-// Export for CI/CD
-const junitXml = tester.exportReport(report, 'junit');
+// Generate candidate test cases from a policy
+const cases = tester.generateTestCases(myPolicies[0]);
 ```
+
+> **Note:** the Python SDK's policy-test API differs — it uses
+> `PolicyTestRunner(engine)` with `run_suite()`. The two are not interchangeable.
 
 ```bash
 # CLI usage

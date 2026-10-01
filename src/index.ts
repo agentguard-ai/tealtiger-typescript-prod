@@ -63,11 +63,24 @@ export type {
 } from './core/engine';
 
 // Enterprise Adoption Features (v1.1.x) - P0.1, P0.2, P0.3
-export type {
+//
+// PolicyMode, DecisionAction and ReasonCode are `enum`s — runtime values, not
+// just types. They were previously in the `export type { ... }` block below,
+// which strips the runtime binding: consumers got
+// "cannot be used as a value because it was exported using 'export type'",
+// and the symbols were genuinely absent from dist/index.js.
+//
+// That made the documented TealEngine usage impossible — `PolicyMode.ENFORCE`
+// and `DecisionAction.ALLOW` are how the engine's API is meant to be called.
+// Exported as values here; the interfaces stay type-only below.
+export {
   PolicyMode,
-  ModeConfig,
   DecisionAction,
-  ReasonCode,
+  ReasonCode
+} from './core/engine/types';
+
+export type {
+  ModeConfig,
   Decision,
   ComponentVersions,
   CostInfo
@@ -271,7 +284,20 @@ export {
   createTealOpenAI,
   createTealAnthropic,
   TealAzureOpenAI,
-  createTealAzureOpenAI
+  createTealAzureOpenAI,
+  // TealMultiProvider was documented in the README but never exported, so it
+  // was unreachable from the published package despite existing at
+  // src/clients/TealMultiProvider.ts.
+  TealMultiProvider
+} from './clients';
+
+export type {
+  ProviderType,
+  ProviderConfig,
+  RoutingStrategy,
+  MultiProviderResponse,
+  AggregatedMetrics,
+  TealMultiProviderConfig
 } from './clients';
 
 export type {

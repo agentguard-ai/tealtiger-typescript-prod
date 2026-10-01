@@ -12,8 +12,10 @@ export { TealCircuit } from '../core/circuit/TealCircuit';
 export { TealAudit } from '../core/audit/TealAudit';
 export { ContextManager } from '../core/context/ContextManager';
 
-// Cohere client (to be implemented)
-// export { TealCohere } from '../clients';
+// Cohere client. Same stale "to be implemented" comment as providers/mistral.ts —
+// TealCohere lives in src/client/cohere.ts and was never exported here, so the
+// published subpath resolved without delivering its client.
+export { TealCohere } from '../client/cohere';
 
 // Types
 export type { TealClientConfig, RequestContext } from '../client';
