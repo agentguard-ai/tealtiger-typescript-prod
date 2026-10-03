@@ -14,13 +14,13 @@
   [![Tests](https://github.com/agentguard-ai/tealtiger-typescript-prod/actions/workflows/test.yml/badge.svg)](https://github.com/agentguard-ai/tealtiger-typescript-prod/actions/workflows/test.yml)
   [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
   [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
-  [![v1.6.0](https://img.shields.io/badge/version-v1.6.0-teal.svg)](https://www.npmjs.com/package/tealtiger)
+  [![v1.6.1](https://img.shields.io/badge/version-v1.6.1-teal.svg)](https://www.npmjs.com/package/tealtiger)
   [![Discord](https://img.shields.io/badge/Discord-Join%20Community-7289da?logo=discord&logoColor=white)](https://discord.gg/X2ePf8QAj)
 </div>
 
 > 📖 **[Read the introduction blog post](https://dev.to/nagasatish_chilakamarti_2/introducing-tealtiger-ai-security-cost-control-made-simple-4lma)** | 📚 **[Documentation](https://docs.tealtiger.ai)**
 
-## What's New in v1.6.0
+## What's New in v1.6.1
 
 - **`tealtiger/reliability`, `tealtiger/secrets`, `tealtiger/verify` are now importable.**
   All three shipped in the package but were exported from nowhere, so no consumer
