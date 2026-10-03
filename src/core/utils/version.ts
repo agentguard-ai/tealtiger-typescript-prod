@@ -28,7 +28,7 @@
  * package.json and this constant disagree, so the duplication cannot drift
  * past a publish undetected.
  */
-export const PACKAGE_VERSION = '1.6.0';
+export const PACKAGE_VERSION = '1.6.1';
 
 /**
  * Component version information

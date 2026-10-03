@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.6.0] - unreleased
+## [1.6.1] - 2026-10-03
+
+Everything below was prepared as 1.6.0, but **1.6.0 was never published to npm**.
+Its release ran against a commit whose `PACKAGE_VERSION` still read `1.5.0`, so the
+release test gate failed and nothing shipped. Rather than move a published tag, the
+same content ships as 1.6.1. There is no 1.6.0 on npm, and nothing is missing from
+this release as a result.
 
 ### Added — three subsystems are now actually importable
 - **`tealtiger/reliability`** — `TealReliability`, retry budgets, circuit breakers,
