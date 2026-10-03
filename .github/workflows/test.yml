@@ -11,6 +11,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     strategy:
+      # fail-fast defaults to true, which cancels the whole matrix the moment one
+      # combination fails. That repeatedly destroyed the signal: a single red cell
+      # left the other eight as "cancelled", so nobody could tell whether a
+      # failure was platform-specific or universal, and the result for the
+      # configuration the release actually publishes from (ubuntu / Node 18) was
+      # among the ones cancelled. Run all nine and report each independently.
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [16.x, 18.x, 20.x]
@@ -50,5 +57,35 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - name: Run security audit
+    # The blocking gate covers only what this package actually publishes.
+    # `files` is ["dist/**/*", "README.md", "LICENSE"], so devDependencies never
+    # reach a consumer, and auditing them here made the gate unpassable rather
+    # than informative.
+    #
+    # The concrete case: a stack-exhaustion advisory against `braces`
+    # (GHSA-vfj7-8cjw-p6xm) reported 36 high findings, every one of them the same
+    # root cause cascading through micromatch into the jest toolchain and
+    # @typescript-eslint. The advisory range is `braces *` — no patched version
+    # exists — so the only remediation npm offers is a breaking jest 30 major.
+    # Nothing in that chain ships, and triggering it requires feeding a
+    # deliberately nested glob pattern, which here can only come from our own
+    # jest and eslint config.
+    #
+    # A gate that cannot go green is worse than no gate: it trains everyone to
+    # merge past red. The dev-tooling audit below still runs, it just doesn't
+    # block a release over a package consumers never receive.
+    - name: Audit shipped dependencies
+      run: npm audit --omit=dev --audit-level=moderate
+
+    # Informational, deliberately non-blocking. A compromised build-time
+    # dependency does execute on CI with repository access, so this is worth
+    # seeing — it is just not a reason to refuse a release. Dependabot alerts
+    # cover the same ground more durably.
+    #
+    # continue-on-error rather than `|| true`: both keep the job green, but
+    # `|| true` reports the step as having succeeded, so a reader has to open the
+    # log to discover anything was found. This marks the step as failed while
+    # leaving the job passing, so the finding stays visible in the run summary.
+    - name: Audit dev tooling (informational, non-blocking)
+      continue-on-error: true
       run: npm audit --audit-level=moderate
