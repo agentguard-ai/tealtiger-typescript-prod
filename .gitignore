@@ -81,3 +81,8 @@ RELEASE-CHECKLIST.md
 *.tgz
 package/
 test-install/
+
+# Conformance harness output (regenerated on every run; the corpus itself is
+# held outside this repository per conformance spec 8.1)
+conformance-results.json
+.conformance-corpus/

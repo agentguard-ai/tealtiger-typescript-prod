@@ -12,8 +12,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { TealEngine } from './src/core/engine/TealEngine';
 
+// Corpus location, in precedence order:
+//   1. explicit argument
+//   2. CONFORMANCE_CORPUS environment variable (how CI supplies it)
+//   3. a sibling checkout, which is the local development layout
+//
+// The corpus deliberately does not live in this repository. Per conformance
+// spec 8.1 it is shared across implementations, and a copy vendored per SDK is
+// a copy that can drift - which is the failure this whole exercise exists to
+// prevent.
 const corpusPath =
   process.argv[2] ??
+  process.env.CONFORMANCE_CORPUS ??
   path.resolve(
     __dirname,
     '../tealtiger-aidlc/conformance/tool-allowlist.v0.1.json'
@@ -172,7 +182,9 @@ const out = {
   outcomes,
 };
 const target =
-  process.argv[3] ?? 'c:/work/tealtiger-workspace/.phase0/conformance-results.json';
+  process.argv[3] ??
+  process.env.CONFORMANCE_RESULTS ??
+  path.resolve(process.cwd(), 'conformance-results.json');
 fs.writeFileSync(target, JSON.stringify(out, null, 2), 'utf-8');
 
 console.log(`\n${passed}/${total} conformant`);
