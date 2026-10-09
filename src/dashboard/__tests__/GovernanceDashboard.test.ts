@@ -20,6 +20,7 @@ function makeDecision(overrides: Partial<Decision> = {}): Decision {
   return {
     action: DecisionAction.ALLOW,
     reason_codes: [ReasonCode.POLICY_COMPLIANT],
+    triggering_clause: 'none',
     risk_score: 0,
     mode: PolicyMode.ENFORCE,
     policy_id: 'test',

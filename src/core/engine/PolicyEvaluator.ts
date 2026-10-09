@@ -87,27 +87,40 @@ export class PolicyEvaluator {
 
     // 1. Check tool policies
     //
-    // TA-7: an absent OR EMPTY tools map means no tool policy is configured and
-    // MUST NOT be read as deny-all. An empty object is truthy, so without the
-    // length check every request would fall through to TA-4's default-deny.
-    const hasToolPolicy =
-      !!policies.tools && Object.keys(policies.tools).length > 0;
+    // TA-7: `tools` absent and `tools: {}` are DIFFERENT, and the difference is
+    // load-bearing:
+    //
+    //   - absent      -> no tool policy is configured, nothing to enforce,
+    //                    the section is inapplicable.
+    //   - `{}` present -> an allowlist that permits nothing. TA-4's default-deny
+    //                    applies, so every tool is denied as absent.
+    //
+    // Collapsing the two would mean a misconfiguration producing an empty map
+    // silently permits every tool. Fail-closed is the correct reading for a
+    // governance product, and it is the behaviour the existing suite asserts.
+    const toolPolicyConfigured =
+      policies.tools !== undefined && policies.tools !== null;
 
-    // TA-1: a `tool.execute` request must name a tool. Per conformance spec
-    // 4.1 a missing required field is reported as malformed input, not as a
-    // governance denial - otherwise it is indistinguishable from a real policy
-    // decision about a real tool.
-    if (context.action === 'tool.execute' && !context.tool) {
-      results.push(
-        this.createResult(
-          false,
-          ['request.tool.missing'],
-          "Request action is 'tool.execute' but no tool was supplied",
-          'request.tool.missing'
-        )
-      );
-    } else if (context.tool && hasToolPolicy) {
-      results.push(this.evaluateToolPolicy(context, policies.tools!));
+    if (toolPolicyConfigured) {
+      // TA-1: a `tool.execute` request must name a tool. Per conformance spec
+      // 4.1 a missing required field is reported as malformed input, not as a
+      // governance denial - otherwise it is indistinguishable from a real
+      // policy decision about a real tool.
+      //
+      // Only meaningful where a tool policy exists: with no tool policy there
+      // is no clause the missing field could be required by.
+      if (context.action === 'tool.execute' && !context.tool) {
+        results.push(
+          this.createResult(
+            false,
+            ['request.tool.missing'],
+            "Request action is 'tool.execute' but no tool was supplied",
+            'request.tool.missing'
+          )
+        );
+      } else if (context.tool) {
+        results.push(this.evaluateToolPolicy(context, policies.tools!));
+      }
     }
 
     // 2. Check identity policies

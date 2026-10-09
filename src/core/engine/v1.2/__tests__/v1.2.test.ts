@@ -256,6 +256,7 @@ describe('TEECValidator', () => {
 
   it('validates a complete Decision object', () => {
     const decision: Decision = {
+      triggering_clause: 'none',
       action: DecisionAction.DENY,
       reason_codes: [ReasonCode.SECRET_DETECTED],
       risk_score: 90,
@@ -276,6 +277,7 @@ describe('TEECValidator', () => {
 
   it('reports invalid fields in a Decision', () => {
     const decision: Decision = {
+      triggering_clause: 'none',
       action: 'BOGUS' as any,
       reason_codes: ['FAKE_CODE' as any],
       risk_score: 50,
