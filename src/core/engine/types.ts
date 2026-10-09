@@ -171,6 +171,18 @@ export interface PolicyEvaluationResult {
   reason?: string;
   /** List of policy rules that were triggered */
   triggeredPolicies: string[];
+  /**
+   * Dotted path of the single clause that produced this result.
+   *
+   * On a denial this is the clause that denied; on an allow it is `none`.
+   * Distinct from `triggeredPolicies`, which lists every clause consulted and
+   * therefore cannot identify the cause of a denial.
+   *
+   * Required by the policy conformance specification so that a correct verdict
+   * reached by the wrong mechanism can be detected rather than counted as a
+   * pass.
+   */
+  triggeringClause?: string;
   /** Additional metadata about the evaluation */
   metadata: {
     /** Time taken to evaluate in milliseconds */
@@ -374,6 +386,15 @@ export enum ReasonCode {
   // Policy compliance
   POLICY_COMPLIANT = 'POLICY_COMPLIANT',
   POLICY_VIOLATION = 'POLICY_VIOLATION',
+  /**
+   * The request was malformed: a field required to evaluate an applicable
+   * clause was absent.
+   *
+   * Distinct from a governance denial. Reporting missing input as a policy
+   * violation makes a client error indistinguishable from a real decision
+   * about a real request.
+   */
+  INVALID_REQUEST = 'INVALID_REQUEST',
   
   // Content safety
   PII_DETECTED = 'PII_DETECTED',
@@ -491,6 +512,16 @@ export interface Decision {
   
   /** Non-empty array of reason codes explaining the decision */
   reason_codes: ReasonCode[];
+  
+  /**
+   * Dotted path of the policy clause that produced this decision, or `none`
+   * when no clause applied.
+   *
+   * A correct action with the wrong triggering clause is not correct
+   * governance: it means the verdict was reached by a mechanism other than the
+   * one under test. Conformance cases assert on this field for that reason.
+   */
+  triggering_clause: string;
   
   /** Risk score between 0 and 100 (inclusive) */
   risk_score: number;

@@ -483,6 +483,8 @@ export class TealReliability implements TealModule {
     return {
       action,
       reason_codes,
+      triggering_clause:
+        action === DecisionAction.ALLOW ? 'none' : 'reliability-governance',
       risk_score: action === DecisionAction.ALLOW ? 0 : 60,
       mode: 'ENFORCE' as any,
       policy_id: 'reliability-governance',

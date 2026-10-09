@@ -50,11 +50,16 @@ export class PolicyEvaluator {
   private createResult(
     allowed: boolean,
     triggeredPolicies: string[],
-    reason?: string
+    reason?: string,
+    triggeringClause?: string
   ): PolicyEvaluationResult {
     const result: PolicyEvaluationResult = {
       allowed,
       triggeredPolicies,
+      // Each evaluator returns exactly one clause when it denies, so the
+      // first entry is the cause. On an allow no clause denied, hence `none`.
+      triggeringClause:
+        triggeringClause ?? (allowed ? 'none' : triggeredPolicies[0] ?? 'unknown'),
       metadata: {
         evaluationTime: 0,
         cacheHit: false,
@@ -81,8 +86,28 @@ export class PolicyEvaluator {
     const startTime = Date.now();
 
     // 1. Check tool policies
-    if (context.tool && policies.tools) {
-      results.push(this.evaluateToolPolicy(context, policies.tools));
+    //
+    // TA-7: an absent OR EMPTY tools map means no tool policy is configured and
+    // MUST NOT be read as deny-all. An empty object is truthy, so without the
+    // length check every request would fall through to TA-4's default-deny.
+    const hasToolPolicy =
+      !!policies.tools && Object.keys(policies.tools).length > 0;
+
+    // TA-1: a `tool.execute` request must name a tool. Per conformance spec
+    // 4.1 a missing required field is reported as malformed input, not as a
+    // governance denial - otherwise it is indistinguishable from a real policy
+    // decision about a real tool.
+    if (context.action === 'tool.execute' && !context.tool) {
+      results.push(
+        this.createResult(
+          false,
+          ['request.tool.missing'],
+          "Request action is 'tool.execute' but no tool was supplied",
+          'request.tool.missing'
+        )
+      );
+    } else if (context.tool && hasToolPolicy) {
+      results.push(this.evaluateToolPolicy(context, policies.tools!));
     }
 
     // 2. Check identity policies
@@ -136,30 +161,50 @@ export class PolicyEvaluator {
     const tool = context.tool!;
     const toolParams = context.toolParams;
 
-    // Check if tool has a specific policy
-    const policy = toolPolicies[tool];
+    // TA-6: tool names match exactly. No case folding, no normalisation, no
+    // pattern matching. `*` is the single exception and is handled below as an
+    // explicit fallback entry rather than as a pattern.
+    const policy = Object.prototype.hasOwnProperty.call(toolPolicies, tool)
+      ? toolPolicies[tool]
+      : undefined;
 
-    // Check wildcard policy
-    const wildcardPolicy = toolPolicies['*'];
+    // Wildcard is a declared fallback, not a wildcard match: a specific entry
+    // always takes precedence over it.
+    const wildcardPolicy = Object.prototype.hasOwnProperty.call(toolPolicies, '*')
+      ? toolPolicies['*']
+      : undefined;
 
-    // If no policy found, check if wildcard allows
+    // TA-4: a tool absent from the map, with no `*` fallback, is denied.
+    // Default-deny is normative - an unknown tool is not an allowed tool.
+    //
+    // TA-5: this clause is `tools.<tool>.absent`, deliberately distinct from
+    // the `tools.<tool>.allowed` clause used when an entry exists and denies.
+    // Both carry TOOL_NOT_ALLOWED, but they are different policy facts and an
+    // operator needs to tell them apart.
     if (!policy && !wildcardPolicy) {
       return this.createResult(
         false,
-        [`tools.${tool}`],
-        `Tool '${tool}' is not defined in policy`
+        [`tools.${tool}.absent`],
+        `Tool '${tool}' is not defined in policy`,
+        `tools.${tool}.absent`
       );
     }
 
-    // Use specific policy if available, otherwise use wildcard
-    const activePolicy = policy || wildcardPolicy!;
+    // Specific entry wins over the `*` fallback.
+    const activePolicy = policy ?? wildcardPolicy!;
+    // Attribute the decision to whichever entry actually governed it, so a
+    // denial inherited from `*` is not reported as if a specific entry existed.
+    const clauseOwner = policy ? tool : '*';
 
-    // Check if tool is explicitly blocked
+    // TA-2: an entry configured `allowed: false` denies.
+    // TA-3: `allowed: true` means the tool policy permits; other sections still
+    // apply, which aggregateResults enforces.
     if (!activePolicy.allowed) {
       return this.createResult(
         false,
-        [`tools.${tool}`],
-        `Tool '${tool}' is blocked by policy`
+        [`tools.${clauseOwner}.allowed`],
+        `Tool '${tool}' is blocked by policy`,
+        `tools.${clauseOwner}.allowed`
       );
     }
 
@@ -400,10 +445,14 @@ export class PolicyEvaluator {
     // Find first blocked result
     const blocked = results.find(r => !r.allowed)!;
 
+    // The aggregate's triggeredPolicies lists every clause consulted, including
+    // those that allowed, so the denying clause must be carried across
+    // explicitly rather than inferred from position.
     return this.createResult(
       false,
       results.flatMap(r => r.triggeredPolicies),
-      blocked.reason
+      blocked.reason,
+      blocked.triggeringClause
     );
   }
 

@@ -428,6 +428,9 @@ export class TealGuard {
     const decision: Decision = {
       action,
       reason_codes: reasonCodes,
+      // Guardrail checks are not policy clauses; attribute to the guard.
+      triggering_clause:
+        action === DecisionAction.ALLOW ? 'none' : 'guardrail.check',
       risk_score: riskScore,
       mode,
       policy_id: 'guardrail.check',

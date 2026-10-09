@@ -308,6 +308,10 @@ export class TealEngineV12 {
     const decision: Decision = {
       action: params.action as DecisionAction,
       reason_codes: params.reason_codes as ReasonCode[],
+      triggering_clause:
+        (params.action as DecisionAction) === DecisionAction.ALLOW
+          ? 'none'
+          : 'v1.2-governance',
       risk_score: this.computeRiskScore(params.action as string),
       mode: this.mode,
       policy_id: 'v1.2-governance',
