@@ -70,6 +70,11 @@
       "require": "./dist/verify.js",
       "types": "./dist/verify/index.d.ts"
     },
+    "./guardrails": {
+      "import": "./dist/guardrails.mjs",
+      "require": "./dist/guardrails.js",
+      "types": "./dist/guardrails/index.d.ts"
+    },
     "./serverless": {
       "import": "./dist/serverless.mjs",
       "require": "./dist/serverless.js",
