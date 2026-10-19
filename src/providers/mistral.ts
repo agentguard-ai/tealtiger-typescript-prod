@@ -26,7 +26,7 @@ export { ContextManager } from '../core/context/ContextManager';
 export { TealMistral, MISTRAL_PRICING } from '../client/mistral';
 
 // Types
-export type { TealClientConfig, RequestContext } from '../client';
+export type { TealClientConfig, RequestContext } from '../client/base';
 export type { TealPolicy, PolicyEvaluationResult } from '../core/engine';
 export type { TealGuardConfig, TealGuardResult } from '../core/guard/TealGuard';
 export type { ExecutionContext } from '../core/context/ExecutionContext';
@@ -39,4 +39,4 @@ export type { CostRecord, BudgetConfig } from '../cost';
 export { GuardrailEngine, PIIDetectionGuardrail, ContentModerationGuardrail, PromptInjectionGuardrail } from '../guardrails';
 
 // Errors
-export { TealTigerError, PolicyViolationError, GuardrailViolationError } from '../client';
+export { TealTigerError, PolicyViolationError, GuardrailViolationError } from '../client/base';

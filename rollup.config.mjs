@@ -196,7 +196,8 @@ const providerConfigs = [
 const subsystemConfigs = [
   { name: 'reliability', input: 'src/reliability/index.ts' },
   { name: 'secrets', input: 'src/secrets/index.ts' },
-  { name: 'verify', input: 'src/verify/index.ts' }
+  { name: 'verify', input: 'src/verify/index.ts' },
+  { name: 'guardrails', input: 'src/guardrails/index.ts' }
 ].map(({ name, input }) => ({
   input,
   output: [

@@ -13,10 +13,10 @@ export { TealAudit } from '../core/audit/TealAudit';
 export { ContextManager } from '../core/context/ContextManager';
 
 // Bedrock client
-export { TealBedrock } from '../clients';
+export { TealBedrock } from '../clients/TealBedrock';
 
 // Types
-export type { TealClientConfig, RequestContext } from '../client';
+export type { TealClientConfig, RequestContext } from '../client/base';
 export type { TealPolicy, PolicyEvaluationResult } from '../core/engine';
 export type { TealGuardConfig, TealGuardResult } from '../core/guard/TealGuard';
 export type { ExecutionContext } from '../core/context/ExecutionContext';
@@ -29,4 +29,4 @@ export type { CostRecord, BudgetConfig } from '../cost';
 export { GuardrailEngine, PIIDetectionGuardrail, ContentModerationGuardrail, PromptInjectionGuardrail } from '../guardrails';
 
 // Errors
-export { TealTigerError, PolicyViolationError, GuardrailViolationError } from '../client';
+export { TealTigerError, PolicyViolationError, GuardrailViolationError } from '../client/base';
