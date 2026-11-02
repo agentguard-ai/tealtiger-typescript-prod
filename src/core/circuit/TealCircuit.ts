@@ -214,6 +214,10 @@ export class TealCircuit {
     const decision: Decision = {
       action,
       reason_codes: reasonCodes,
+      // The circuit breaker is not a policy clause, so it attributes its own
+      // denials to itself rather than borrowing a policy path.
+      triggering_clause:
+        action === DecisionAction.DENY ? 'circuit.breaker' : 'none',
       risk_score: riskScore,
       mode: PolicyMode.ENFORCE, // Circuit breaker always enforces
       policy_id: 'circuit.breaker',

@@ -679,6 +679,7 @@ export class TealEngineV13 extends TealEngineV12 {
     return {
       action: DecisionAction.DENY,
       reason_codes: [params.reason_code] as any,
+      triggering_clause: 'v1.3-governance',
       risk_score: 100,
       mode: PolicyMode.ENFORCE,
       policy_id: 'v1.3-governance',

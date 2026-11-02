@@ -280,6 +280,8 @@ export class TealEngine {
       const decision: Decision = {
         action: DecisionAction.ALLOW,
         reason_codes: [ReasonCode.REPORT_ONLY_MODE],
+        // REPORT_ONLY skips evaluation entirely, so no clause was consulted.
+        triggering_clause: 'none',
         risk_score: 0,
         mode: PolicyMode.REPORT_ONLY,
         policy_id: policyId,
@@ -327,6 +329,9 @@ export class TealEngine {
         reason_codes: evalResult.allowed 
           ? [ReasonCode.POLICY_COMPLIANT]
           : [ReasonCode.MONITOR_MODE_VIOLATION, ...reasonCodes],
+        // MONITOR allows the request but preserves the clause that would have
+        // denied it, so the would-be denial remains attributable.
+        triggering_clause: evalResult.triggeringClause ?? 'none',
         risk_score: riskScore,
         mode: PolicyMode.MONITOR,
         policy_id: policyId,
@@ -367,6 +372,7 @@ export class TealEngine {
         reason_codes: evalResult.allowed 
           ? [ReasonCode.POLICY_COMPLIANT]
           : reasonCodes,
+        triggering_clause: evalResult.triggeringClause ?? 'none',
         risk_score: riskScore,
         mode: PolicyMode.ENFORCE,
         policy_id: policyId,
@@ -445,22 +451,39 @@ export class TealEngine {
 
     const codes: ReasonCode[] = [ReasonCode.POLICY_VIOLATION];
 
-    // Map triggered policies to reason codes
-    for (const policy of result.triggeredPolicies) {
-      if (policy.includes('tools')) {
-        // Check if it's a tool not allowed violation
-        if (policy.includes('allowed') || result.reason?.includes('blocked') || result.reason?.includes('not defined')) {
-          codes.push(ReasonCode.TOOL_NOT_ALLOWED);
-        } else if (policy.includes('rateLimit')) {
-          codes.push(ReasonCode.TOOL_RATE_LIMIT_EXCEEDED);
-        }
-      } else if (policy.includes('identity.forbidden')) {
-        codes.push(ReasonCode.POLICY_VIOLATION);
-      } else if (policy.includes('codeExecution')) {
-        codes.push(ReasonCode.UNSAFE_CODE_DETECTED);
-      } else if (policy.includes('behavioral.costLimit')) {
-        codes.push(ReasonCode.COST_BUDGET_EXCEEDED);
+    // Derive the specific code from the clause that actually denied, rather
+    // than from every clause consulted. Two reasons:
+    //
+    //  - On an aggregated result `triggeredPolicies` also lists clauses that
+    //    ALLOWED, so iterating it attributes codes to clauses that had no part
+    //    in the denial.
+    //  - The previous implementation fell back to substring-matching
+    //    `result.reason`, the human-readable operator message. Machine
+    //    decisions must not depend on prose that is free to be reworded.
+    const clause = result.triggeringClause ?? result.triggeredPolicies[0] ?? '';
+
+    if (clause.startsWith('request.')) {
+      // TA-1 / spec 4.1: malformed input, reported as such rather than
+      // disguised as a governance decision about a real request.
+      codes.push(ReasonCode.INVALID_REQUEST);
+    } else if (clause.startsWith('tools.')) {
+      if (clause.endsWith('.absent') || clause.endsWith('.allowed')) {
+        // TA-2 (entry denies) and TA-4 (entry absent, default-deny). Both
+        // carry TOOL_NOT_ALLOWED; the clause distinguishes them (TA-5).
+        codes.push(ReasonCode.TOOL_NOT_ALLOWED);
+      } else if (clause.includes('rateLimit')) {
+        codes.push(ReasonCode.TOOL_RATE_LIMIT_EXCEEDED);
+      } else {
+        // maxSize / maxRows / allowedTables: the tool is permitted but its
+        // arguments breach a constraint.
+        codes.push(ReasonCode.TOOL_PARAMETER_INVALID);
       }
+    } else if (clause.includes('identity.forbidden')) {
+      codes.push(ReasonCode.POLICY_VIOLATION);
+    } else if (clause.startsWith('codeExecution')) {
+      codes.push(ReasonCode.UNSAFE_CODE_DETECTED);
+    } else if (clause.startsWith('behavioral.costLimit')) {
+      codes.push(ReasonCode.COST_BUDGET_EXCEEDED);
     }
 
     // Remove duplicates

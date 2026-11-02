@@ -32,6 +32,7 @@ describe('Backward Compatibility — v1.2 Decision validation after v2.1 deploym
       // The import at the top of this file proves the path works.
       // This assertion verifies the type is usable at runtime.
       const decision: Decision = {
+        triggering_clause: 'none',
         action: 'ALLOW' as any,
         reason_codes: ['POLICY_COMPLIANT'] as any[],
         risk_score: 0,
@@ -62,6 +63,7 @@ describe('Backward Compatibility — v1.2 Decision validation after v2.1 deploym
   describe('TEECValidator.validateDecision() with v1.2 Decisions', () => {
     it('should validate a valid v1.2 Decision without error', () => {
       const decision: Decision = {
+        triggering_clause: 'none',
         action: 'ALLOW' as any,
         reason_codes: ['POLICY_COMPLIANT'] as any[],
         risk_score: 0,
@@ -86,6 +88,7 @@ describe('Backward Compatibility — v1.2 Decision validation after v2.1 deploym
 
     it('should validate a v1.2 Decision with DENY action and multiple reason codes', () => {
       const decision: Decision = {
+        triggering_clause: 'none',
         action: 'DENY' as any,
         reason_codes: ['POLICY_VIOLATION', 'PII_DETECTED'] as any[],
         risk_score: 100,
@@ -108,6 +111,7 @@ describe('Backward Compatibility — v1.2 Decision validation after v2.1 deploym
 
     it('should validate a v1.2 Decision without optional teec_version field', () => {
       const decision: Decision = {
+        triggering_clause: 'none',
         action: 'ALLOW' as any,
         reason_codes: ['POLICY_COMPLIANT'] as any[],
         risk_score: 0,
@@ -128,6 +132,7 @@ describe('Backward Compatibility — v1.2 Decision validation after v2.1 deploym
     it('should validate a v1.2 Decision that does NOT have v2.1 fields', () => {
       // Crucially: a v1.2 decision has NO intent_ref, receipt_ref, seq, etc.
       const decision: Decision = {
+        triggering_clause: 'none',
         action: 'ALLOW' as any,
         reason_codes: ['POLICY_COMPLIANT'] as any[],
         risk_score: 0,

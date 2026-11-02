@@ -97,6 +97,9 @@ function produceGovernanceDecision(
   const baseDecision = {
     action: DecisionAction.ALLOW,
     reason_codes: [] as ReasonCode[],
+    // Observe mode records traffic without evaluating policy, so no clause
+    // was consulted.
+    triggering_clause: 'none',
     risk_score: 0,
     mode: PolicyMode.MONITOR,
     policy_id: 'observe-governance',

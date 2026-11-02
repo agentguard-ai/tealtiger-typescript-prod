@@ -89,3 +89,67 @@ jobs:
     - name: Audit dev tooling (informational, non-blocking)
       continue-on-error: true
       run: npm audit --audit-level=moderate
+
+  # Runs the shared, language-neutral conformance corpus against this build.
+  #
+  # Distinct from `test`. The unit suite checks that this implementation does
+  # what its authors intended; the corpus checks that it does what the policy
+  # conformance specification requires, using the same cases and the same
+  # judgement rules as every other implementation. A change can keep all 2961
+  # unit tests green and still break conformance.
+  #
+  # Single platform and single Node version on purpose: policy evaluation is
+  # required to be deterministic (spec 3.6), so a conformance result that varies
+  # by OS or runtime is itself the finding, and belongs in the unit matrix where
+  # the platform axis already exists.
+  conformance:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 20.x
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    # The corpus is NOT vendored into this repository. Per conformance spec 8.1
+    # it is shared across implementations; a per-SDK copy is a copy that drifts,
+    # and the drift between privately-held corpora is what made the two SDKs
+    # diverge to 3 shared test inputs out of 69 and 25.
+    #
+    # It defaults to the public corpus repository, so this gate needs no
+    # configuration to work. The vars/secret overrides exist for anyone running
+    # against a fork or a private copy.
+    #
+    # Note there is no "is it configured?" guard here, and deliberately so: the
+    # harness itself fails when it cannot load the corpus (H-2), which is the
+    # check that actually matters. A guard in the workflow could only repeat it
+    # less reliably.
+    - name: Fetch conformance corpus
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ vars.CONFORMANCE_CORPUS_REPO || 'agentguard-ai/tealtiger-conformance' }}
+        token: ${{ secrets.CONFORMANCE_CORPUS_TOKEN || github.token }}
+        path: .conformance-corpus
+
+    - name: Run conformance harness
+      env:
+        # Defaults to the tool-allowlist suite, the only rule type specified in
+        # v0.1. Override as further rule types are specified.
+        CONFORMANCE_CORPUS: >-
+          ${{ github.workspace }}/.conformance-corpus/${{
+            vars.CONFORMANCE_CORPUS_PATH || 'suites/tool-allowlist.v0.1.json'
+          }}
+      run: npm run conformance
+
+    - name: Upload conformance results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: conformance-results
+        path: conformance-results.json
+        if-no-files-found: ignore
