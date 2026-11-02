@@ -120,28 +120,19 @@ jobs:
     # it is shared across implementations; a per-SDK copy is a copy that drifts,
     # and the drift between privately-held corpora is what made the two SDKs
     # diverge to 3 shared test inputs out of 69 and 25.
-    - name: Check corpus source is configured
-      env:
-        CORPUS_REPO: ${{ vars.CONFORMANCE_CORPUS_REPO }}
-      run: |
-        if [ -z "$CORPUS_REPO" ]; then
-          echo "::error::CONFORMANCE_CORPUS_REPO is not configured."
-          echo ""
-          echo "This gate cannot verify conformance without the shared corpus, and a"
-          echo "conformance gate that passes when it cannot find its corpus is worse"
-          echo "than no gate: it reports green while checking nothing."
-          echo ""
-          echo "Set the repository variable CONFORMANCE_CORPUS_REPO to the corpus"
-          echo "repository (for example agentguard-ai/tealtiger-conformance), and"
-          echo "CONFORMANCE_CORPUS_PATH to the suite file within it. If the corpus"
-          echo "repository is private, also set the CONFORMANCE_CORPUS_TOKEN secret."
-          exit 1
-        fi
-
+    #
+    # It defaults to the public corpus repository, so this gate needs no
+    # configuration to work. The vars/secret overrides exist for anyone running
+    # against a fork or a private copy.
+    #
+    # Note there is no "is it configured?" guard here, and deliberately so: the
+    # harness itself fails when it cannot load the corpus (H-2), which is the
+    # check that actually matters. A guard in the workflow could only repeat it
+    # less reliably.
     - name: Fetch conformance corpus
       uses: actions/checkout@v3
       with:
-        repository: ${{ vars.CONFORMANCE_CORPUS_REPO }}
+        repository: ${{ vars.CONFORMANCE_CORPUS_REPO || 'agentguard-ai/tealtiger-conformance' }}
         token: ${{ secrets.CONFORMANCE_CORPUS_TOKEN || github.token }}
         path: .conformance-corpus
 
@@ -151,7 +142,7 @@ jobs:
         # v0.1. Override as further rule types are specified.
         CONFORMANCE_CORPUS: >-
           ${{ github.workspace }}/.conformance-corpus/${{
-            vars.CONFORMANCE_CORPUS_PATH || 'conformance/tool-allowlist.v0.1.json'
+            vars.CONFORMANCE_CORPUS_PATH || 'suites/tool-allowlist.v0.1.json'
           }}
       run: npm run conformance
 
