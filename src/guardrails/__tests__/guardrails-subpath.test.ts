@@ -189,6 +189,12 @@ describe("Guardrails Subpath & Module Isolation (#556)", () => {
       expect(output.length).toBeGreaterThan(0);
       expect(output[0].code).toBeDefined();
       expect(output[0].code.length).toBeGreaterThan(0);
-    });
+      // This test runs a full Rollup bundle including TypeScript compilation,
+      // which does not fit jest's 5s default on a loaded runner. It failed on
+      // ubuntu-latest/20.x in CI and locally on Windows while passing
+      // elsewhere, which is the signature of a timeout rather than a defect.
+      // The assertion is about whether the bundle resolves, so a generous
+      // ceiling costs nothing and removes the flake.
+    }, 120_000);
   });
 });
