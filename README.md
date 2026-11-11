@@ -138,50 +138,63 @@ const response = await multiProvider.chat({
 
 ### TealEngine — Policy Evaluation
 
-Deterministic policy evaluation with multi-mode enforcement:
+Deterministic tool-allowlist enforcement. Same input and policy produce the same decision
+every time, with no model in the decision path.
 
 ```typescript
 import { TealEngine, PolicyMode, DecisionAction, ReasonCode } from 'tealtiger';
 
-const engine = new TealEngine({
-  policies: myPolicies,
-  mode: {
-    defaultMode: PolicyMode.ENFORCE,       // or MONITOR, REPORT_ONLY
-    policyModes: {
-      'tools.file_delete': PolicyMode.ENFORCE,
-      'identity.admin_access': PolicyMode.ENFORCE
+// Policies are the FIRST positional argument; mode goes in the options object.
+const engine = new TealEngine(
+  {
+    tools: {
+      file_delete: { allowed: false },
+      search: { allowed: true }
     }
-  }
-});
+  },
+  { mode: { default: PolicyMode.ENFORCE } }   // or MONITOR, REPORT_ONLY
+);
 
-const decision = engine.evaluate({
+// evaluateWithMode returns a Decision. (evaluate() returns the lower-level
+// PolicyEvaluationResult, which has no `action` field.)
+const decision = engine.evaluateWithMode({
   agentId: 'agent-001',
   action: 'tool.execute',
-  tool: 'file_delete',
-  correlation_id: 'req-12345'
+  tool: 'file_delete'
 });
 
 switch (decision.action) {
+  case DecisionAction.DENY:
+    // reason_codes: [POLICY_VIOLATION, TOOL_NOT_ALLOWED]
+    // triggering_clause: 'tools.file_delete.allowed'
+    throw new ToolNotAllowedError(decision.reason);
   case DecisionAction.ALLOW:
     await executeTool();
     break;
-  case DecisionAction.DENY:
-    if (decision.reason_codes.includes(ReasonCode.TOOL_NOT_ALLOWED)) {
-      throw new ToolNotAllowedError(decision.reason);
-    }
-    break;
-  case DecisionAction.REQUIRE_APPROVAL:
-    await requestApproval(decision);
-    break;
-}
-
-// Risk-based routing
-if (decision.risk_score > 80) {
-  await escalateToHuman(decision);
 }
 ```
 
-**Decision fields:** `action` (ALLOW, DENY, REDACT, TRANSFORM, REQUIRE_APPROVAL, DEGRADE), `reason_codes` (standardized enums), `risk_score` (0-100), `correlation_id`, `metadata`
+`triggering_clause` names the single clause that produced the decision. It distinguishes a
+tool denied by an explicit `allowed: false` (`tools.<tool>.allowed`) from one denied because
+it is absent from the policy (`tools.<tool>.absent`). Both carry `TOOL_NOT_ALLOWED`; they are
+different policy facts.
+
+**Decision fields:** `action` (ALLOW, DENY, REDACT, TRANSFORM, REQUIRE_APPROVAL, DEGRADE),
+`reason_codes`, `triggering_clause`, `risk_score` (0-100), `correlation_id`, `metadata`
+
+#### What this engine does and does not enforce
+
+Stated explicitly, because earlier revisions of this README implied more:
+
+| Policy section | State |
+|---|---|
+| `tools` | **Enforced.** Specified and verified against the shared [conformance corpus](https://github.com/agentguard-ai/tealtiger-conformance) — 16/16, run on every build. |
+| `codeExecution` | Partially wired. The language is read from `context.metadata.language`, which `RequestContext` does not declare, so an unset language resolves to `'unknown'` and denies on `allowedLanguages` before any blocked-function check runs. Do not rely on it. |
+| `content` (PII, moderation) | **Not implemented.** The clause returns allow unconditionally. Use `TealGuard` for PII and injection. |
+| `behavioral` | Compares a supplied `cost` against a daily limit. No accumulation across requests; rate limits are not enforced. |
+
+`risk_score` has no severity model behind it: it is `0` on any allow and a flat value derived
+from the count of triggered clauses otherwise. Do not route on its magnitude.
 
 ### TealGuard — Security Guardrails
 
@@ -333,20 +346,44 @@ if (!check.allowed) {
 
 ## 🛡️ OWASP Top 10 for Agentic Applications Coverage
 
-TealTiger v1.2.0 covers **7 out of 10** OWASP ASIs through its SDK-only architecture:
-
 | ASI | Vulnerability | Coverage | Components |
 |-----|--------------|----------|------------|
-| ASI01 | Goal Hijacking & Prompt Injection | 🟡 Partial | TealGuard, TealEngine |
+| ASI01 | Goal Hijacking & Prompt Injection | 🟡 Partial | TealGuard |
 | ASI02 | Tool Misuse & Unauthorized Actions | 🟢 Full | TealEngine |
-| ASI03 | Identity & Access Control Failures | 🟢 Full | TealEngine |
+| ASI03 | Identity & Access Control Failures | 🟡 Partial | TealEngine |
 | ASI04 | Supply Chain Vulnerabilities | 🔧 Support | TealAudit |
-| ASI05 | Unsafe Code Execution | 🟢 Full | TealEngine |
-| ASI06 | Memory & Context Corruption | 🟢 Full | TealEngine, TealGuard |
+| ASI05 | Unsafe Code Execution | 🟡 Partial | TealEngine |
+| ASI06 | Memory & Context Corruption | ❌ Not reachable | — |
 | ASI07 | Inter-Agent Communication Security | ❌ Platform | N/A |
 | ASI08 | Cascading Failures & Resource Exhaustion | 🟢 Full | TealCircuit |
 | ASI09 | Harmful Content Generation | 🔧 Support | TealGuard |
 | ASI10 | Rogue Agent Behavior | 🟢 Full | TealAudit |
+
+> **Revised 2026-11.** This table previously claimed "7 out of 10" with 🟢 Full coverage of
+> ASI03, ASI05 and ASI06. Those were downgraded after the policy engine was measured against
+> the shared conformance corpus. What changed and why:
+>
+> - **ASI02 remains Full**, and is now the only engine row with evidence behind it: tool
+>   allowlist is specified, implemented and verified 16/16 against the
+>   [conformance corpus](https://github.com/agentguard-ai/tealtiger-conformance) on every
+>   build.
+> - **ASI01** drops `TealEngine`. Its content clause returns allow unconditionally, so
+>   injection coverage rests entirely on `TealGuard`.
+> - **ASI03** → Partial. Identity policy evaluates, but it is unspecified and has no
+>   conformance coverage.
+> - **ASI05** → Partial. The code-execution clause denies on a language precondition before
+>   reaching blocked-function detection, because the language is read from
+>   `context.metadata.language`, which `RequestContext` does not declare.
+> - **ASI06** → Not reachable. Memory governance is a separate subsystem from the policy
+>   engine, so the engine attribution was wrong either way. But `TealMemory` also cannot be
+>   imported: it is absent from the root export and from `exports` in `package.json`, and
+>   `dist/memory/` contains only `.d.ts` declarations with no emitted JavaScript. It will
+>   type-check and fail at runtime. This is the same declaration-only build gap that
+>   affected `reliability`, `secrets` and `verify` before 1.6.0, and it is tracked
+>   separately from this correction.
+>
+> Coverage claims for an engine clause are only marked Full where a conformance suite
+> demonstrates it. That is a deliberately higher bar than the one this table previously used.
 
 📖 [Complete OWASP ASI Mapping](../../OWASP-AGENTIC-TOP10-TEALTIGER-MAPPING.md) | [OWASP Top 10 for Agentic Applications](https://owasp.org/www-project-top-10-for-agentic-applications/)
 
